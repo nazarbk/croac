@@ -1,0 +1,31 @@
+{
+  "id": "./",
+  "name": "Croac · Tareas que hacen crecer a tu rana",
+  "short_name": "Croac",
+  "description": "Gestor de tareas y hábitos gamificado: completa tareas, gana experiencia y monedas, y haz crecer a tu rana.",
+  "lang": "es",
+  "dir": "ltr",
+  "start_url": "./#/hoy",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef4ef",
+  "theme_color": "#2f9a55",
+  "categories": ["productivity", "lifestyle"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Hoy", "short_name": "Hoy", "url": "./#/hoy", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Nueva tarea", "short_name": "Nueva", "url": "./#/hoy?nueva=1", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Mi rana", "short_name": "Rana", "url": "./#/rana", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ],
+  "screenshots": [
+    { "src": "screenshots/movil-hoy.png", "sizes": "1170x2532", "type": "image/png", "form_factor": "narrow", "label": "Tus tareas de hoy" },
+    { "src": "screenshots/movil-rana.png", "sizes": "1170x2532", "type": "image/png", "form_factor": "narrow", "label": "Tu rana crece con cada tarea" },
+    { "src": "screenshots/escritorio-hoy.png", "sizes": "1440x900", "type": "image/png", "form_factor": "wide", "label": "Croac en el ordenador" }
+  ]
+}
