@@ -112,5 +112,7 @@ export function emitGameEvents(events: GameEvent[]) {
 
 export function onGameEvents(l: Listener) {
   gameListeners.add(l);
-  return () => gameListeners.delete(l);
+  return () => {
+    gameListeners.delete(l);
+  };
 }

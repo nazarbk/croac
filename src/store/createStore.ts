@@ -23,7 +23,9 @@ export function createStore<T>(initial: T): Store<T> {
     },
     subscribe(listener) {
       listeners.add(listener);
-      return () => listeners.delete(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     },
   };
 }
