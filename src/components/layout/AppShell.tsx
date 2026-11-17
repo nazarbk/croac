@@ -67,6 +67,7 @@ function Sidebar() {
         <NavLink to="hoy" icon="sun" label="Hoy" count={due.length + overdue.length} active={route.name === 'hoy'} />
         <NavLink to="proximo" icon="calendar" label="Próximo" active={route.name === 'proximo'} />
         <NavLink to="tareas" icon="list" label="Todas las tareas" active={route.name === 'tareas' && !currentList} />
+        <NavLink to="historial" icon="history" label="Historial" active={route.name === 'historial'} />
       </nav>
       <div className="flex items-center justify-between mt-7 mb-1.5 pl-3">
         <span className="text-[13px] font-semibold text-muted">Listas</span>
@@ -83,6 +84,8 @@ function Sidebar() {
       </nav>
       <div className="mt-auto pt-4 flex flex-col gap-1 border-t border-line">
         <NavLink to="rana" icon="leaf" label={`Mi rana · ${info.frog.name}`} active={route.name === 'rana'} />
+        <NavLink to="charca" icon="waves" label="La charca" active={route.name === 'charca'} />
+        <NavLink to="amigos" icon="users" label="Amigos" active={route.name === 'amigos'} />
         <NavLink
           to="tienda" icon="bag" label="Tienda" active={route.name === 'tienda'}
           trailing={<span className="flex items-center gap-1 text-xs font-semibold tabular-nums"><Coin size={14} />{coins}</span>}
@@ -99,8 +102,8 @@ const MOBILE_TABS: { to: RouteName; icon: IconName; label: string }[] = [
   { to: 'hoy', icon: 'sun', label: 'Hoy' },
   { to: 'proximo', icon: 'calendar', label: 'Próximo' },
   { to: 'tareas', icon: 'list', label: 'Tareas' },
+  { to: 'charca', icon: 'waves', label: 'Charca' },
   { to: 'rana', icon: 'leaf', label: 'Rana' },
-  { to: 'tienda', icon: 'bag', label: 'Tienda' },
 ];
 
 function BottomNav() {
@@ -187,6 +190,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                     title="Más"
                     trigger={(p) => <IconButton icon="menu" label="Más opciones" {...p} />}
                     items={[
+                      { label: 'Tienda', icon: 'bag', onSelect: () => navigate('tienda') },
+                      { label: 'Amigos', icon: 'users', onSelect: () => navigate('amigos') },
+                      { label: 'Historial', icon: 'history', onSelect: () => navigate('historial') },
                       { label: 'Estadísticas', icon: 'chart', onSelect: () => navigate('estadisticas') },
                       { label: 'Ajustes', icon: 'settings', onSelect: () => navigate('ajustes') },
                     ]}

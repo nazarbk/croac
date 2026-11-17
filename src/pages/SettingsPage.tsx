@@ -8,6 +8,7 @@ import type { Settings } from '../domain/types';
 import { cn } from '../lib/cn';
 import { requestNotificationPermission } from '../features/reminders';
 import { InstallCard } from '../features/install';
+import { AccountCard } from '../features/account';
 import { actions } from '../store/actions';
 import { useApp } from '../store/appStore';
 import { ui } from '../store/uiStore';
@@ -63,6 +64,7 @@ export function SettingsPage() {
         <h1 className="font-display text-[2rem] leading-none font-extrabold tracking-tight">Ajustes</h1>
       </header>
 
+      <AccountCard />
       <InstallCard />
 
       <Card title="Reglas del juego" description="Cómo de exigente es la charca.">

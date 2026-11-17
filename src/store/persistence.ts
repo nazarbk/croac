@@ -7,7 +7,8 @@ import type { AppState } from '../domain/types';
  */
 export interface StorageAdapter {
   load(): unknown | null;
-  save(state: AppState): void;
+  /** Devuelve false si no se pudo guardar (almacenamiento lleno o bloqueado). */
+  save(state: AppState): boolean;
   clear(): void;
 }
 
@@ -24,8 +25,9 @@ export function localStorageAdapter(key: string): StorageAdapter {
     save(state) {
       try {
         localStorage.setItem(key, JSON.stringify(state));
+        return true;
       } catch {
-        /* almacenamiento lleno o bloqueado: la app sigue funcionando en memoria */
+        return false; // almacenamiento lleno o bloqueado: la app sigue en memoria
       }
     },
     clear() {
@@ -59,14 +61,37 @@ export function migrate(raw: unknown): AppState | null {
   if (!Array.isArray(s.tasks) || !Array.isArray(s.history)) return null;
   const base = createInitialState();
   const st = s as unknown as AppState;
+  const obj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
+  // Descarta registros corruptos en lugar de romper la app al leerlos.
+  const tasks = st.tasks
+    .filter((t) => obj(t) && typeof t.id === 'string' && typeof t.title === 'string')
+    .map((t) => ({
+      ...t,
+      tags: Array.isArray(t.tags) ? t.tags : [],
+      subtasks: Array.isArray(t.subtasks) ? t.subtasks : [],
+      recurrence: obj(t.recurrence) ? t.recurrence : { type: 'none' as const },
+      priority: [1, 2, 3, 4].includes(t.priority) ? t.priority : 4,
+      status: ['todo', 'in_progress', 'done'].includes(t.status) ? t.status : 'todo',
+      order: typeof t.order === 'number' ? t.order : 0,
+    }));
+  const history = st.history.filter((h) => obj(h) && typeof h.id === 'string' && typeof h.date === 'string' && typeof h.xp === 'number');
+  const frog = { ...base.frog, ...(obj(st.frog) ? st.frog : {}) };
   return {
     ...base,
     ...st,
     version: STATE_VERSION,
-    lists: Array.isArray(st.lists) && st.lists.length ? st.lists : DEFAULT_LISTS,
-    frog: { ...base.frog, ...st.frog },
-    settings: { ...DEFAULT_SETTINGS, ...st.settings },
-    meta: { ...base.meta, ...st.meta },
+    tasks,
+    history,
+    lists: Array.isArray(st.lists) && st.lists.length ? st.lists.filter((l) => obj(l) && typeof l.id === 'string') : DEFAULT_LISTS,
+    frog: {
+      ...frog,
+      xp: Math.max(0, Number(frog.xp) || 0),
+      coins: Math.max(0, Number(frog.coins) || 0),
+      owned: Array.isArray(frog.owned) ? frog.owned : base.frog.owned,
+      equipped: obj(frog.equipped) ? frog.equipped : base.frog.equipped,
+    },
+    settings: { ...DEFAULT_SETTINGS, ...(obj(st.settings) ? st.settings : {}) },
+    meta: { ...base.meta, ...(obj(st.meta) ? st.meta : {}), perfectDays: Array.isArray(st.meta?.perfectDays) ? st.meta.perfectDays : [] },
     notifications: Array.isArray(st.notifications) ? st.notifications : [],
   };
 }

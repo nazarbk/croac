@@ -1,5 +1,6 @@
 import type { DateStr } from '../domain/dates';
 import type { GameEvent } from '../domain/types';
+import type { TaskInput } from '../domain/tasks';
 import { uid } from '../domain/id';
 import { createStore, useStore } from './createStore';
 import type { IconName } from '../components/ui/Icon';
@@ -21,7 +22,7 @@ export type Celebration =
 export interface EditorState {
   open: boolean;
   taskId: string | null;
-  defaults?: { date?: DateStr | null; listId?: string };
+  defaults?: { date?: DateStr | null; listId?: string; template?: Partial<TaskInput> };
 }
 
 interface UiState {

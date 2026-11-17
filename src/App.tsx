@@ -16,12 +16,22 @@ import { StatsPage } from './pages/StatsPage';
 import { TasksPage } from './pages/TasksPage';
 import { TodayPage } from './pages/TodayPage';
 import { UpcomingPage } from './pages/UpcomingPage';
+import { HistoryPage } from './pages/HistoryPage';
+import { PondPage } from './pages/PondPage';
+import { FriendsPage } from './pages/FriendsPage';
+import { AuthModal, SyncConflictModal } from './features/account';
+import { useCloudSync } from './services/sync';
+import { account } from './services/account';
+import { ErrorBoundary } from './features/ErrorBoundary';
 import { tickClock, useApp } from './store/appStore';
 
 const PAGES: Record<RouteName, { title: string; Component: () => React.ReactElement }> = {
   hoy: { title: 'Hoy', Component: TodayPage },
   proximo: { title: 'Próximo', Component: UpcomingPage },
   tareas: { title: 'Tareas', Component: TasksPage },
+  historial: { title: 'Historial', Component: HistoryPage },
+  charca: { title: 'La charca', Component: PondPage },
+  amigos: { title: 'Amigos', Component: FriendsPage },
   rana: { title: 'Mi rana', Component: FrogPage },
   tienda: { title: 'Tienda', Component: ShopPage },
   estadisticas: { title: 'Estadísticas', Component: StatsPage },
@@ -60,6 +70,10 @@ export default function App() {
   useGameFeedback();
   useReminders();
   useShortcuts();
+  useCloudSync();
+  useEffect(() => {
+    void account.restore();
+  }, []);
 
   // Atajo del icono instalado (PWA): #/hoy?nueva=1 abre el editor.
   useEffect(() => {
@@ -78,13 +92,17 @@ export default function App() {
   return (
     <>
       <AppShell>
-        <page.Component />
+        <ErrorBoundary key={route.name}>
+          <page.Component />
+        </ErrorBoundary>
       </AppShell>
       <TaskEditor />
       <Toaster />
       <Celebrations />
       <Onboarding />
       <DailyReview />
+      <AuthModal />
+      <SyncConflictModal />
     </>
   );
 }

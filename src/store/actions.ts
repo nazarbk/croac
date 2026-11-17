@@ -6,7 +6,7 @@ import { parseQuickAdd } from '../domain/parser';
 import { limitsFor } from '../domain/plans';
 import { levelInfo, stageForLevel } from '../domain/progression';
 import { NO_REPEAT } from '../domain/recurrence';
-import { buildTask, emptySubtask, INBOX_ID, reorderTasks, updateTaskFields, type TaskInput } from '../domain/tasks';
+import { buildCopies, buildTask, emptySubtask, INBOX_ID, reorderTasks, updateTaskFields, type TaskInput } from '../domain/tasks';
 import type { AppState, Ctx, EngineResult, Plan, Settings, Task, TaskList, TaskSort, TaskStatus } from '../domain/types';
 import { appStore, getCtx, storage } from './appStore';
 import { migrate } from './persistence';
@@ -70,6 +70,17 @@ export const actions = {
     const task = appStore.get().tasks.find((t) => t.id === id);
     patch((s) => ({ ...s, tasks: s.tasks.filter((t) => t.id !== id) }));
     return task;
+  },
+
+  /** Programa una tarea (o una plantilla) en varios días a la vez. Devuelve las nuevas. */
+  scheduleCopies(template: TaskInput, dates: DateStr[]): Task[] {
+    const copies = buildCopies(template, dates, getCtx(), nextOrder(appStore.get()));
+    patch((s) => ({ ...s, tasks: [...s.tasks, ...copies] }));
+    return copies;
+  },
+
+  removeTasks(ids: string[]) {
+    patch((s) => ({ ...s, tasks: s.tasks.filter((t) => !ids.includes(t.id)) }));
   },
 
   restoreTask(task: Task) {

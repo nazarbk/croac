@@ -109,3 +109,36 @@ export function reorderTasks(tasks: Task[], ids: string[], current: TaskSort): T
   const order = new Map(result.map((t, i) => [t.id, i]));
   return tasks.map((t) => (order.get(t.id) === t.order ? t : { ...t, order: order.get(t.id)! }));
 }
+
+/* ---------- Copiar tareas (historial → volver a programar) ---------- */
+
+/** Plantilla con lo esencial de una tarea, sin fechas ni estado. */
+export function templateOf(task: Task): TaskInput {
+  return {
+    title: task.title,
+    notes: task.notes,
+    listId: task.listId,
+    tags: task.tags,
+    priority: task.priority,
+    difficulty: task.difficulty,
+    time: task.time,
+    subtasks: task.subtasks.map((s) => ({ ...s, done: false })),
+  };
+}
+
+/** Crea una tarea puntual por cada fecha (sin repetidos, en orden). */
+export function buildCopies(template: TaskInput, dates: DateStr[], ctx: Ctx, firstOrder: number): Task[] {
+  const unique = [...new Set(dates)].sort();
+  return unique.map((date, i) =>
+    buildTask(
+      {
+        ...template,
+        recurrence: NO_REPEAT,
+        date,
+        subtasks: (template.subtasks ?? []).map((s) => emptySubtask(s.title)),
+      },
+      ctx,
+      firstOrder + i,
+    ),
+  );
+}

@@ -1,11 +1,13 @@
 # Hoja de ruta y sugerencias
 
-Lo que hay en la v0.1 es un producto completo para un solo dispositivo. Esto es lo que sugiero a continuación, ordenado por impacto.
+La v0.3 añade cuentas, sincronización, amigos, la charca compartida y el historial. Lo pendiente de seguridad y calidad está priorizado en [`AUDITORIA.md`](AUDITORIA.md). Esto es lo que sugiero a continuación, ordenado por impacto.
+
+**Hecho en v0.3**: cuentas con Supabase, sincronización entre dispositivos (último en guardar gana), amigos por código o enlace, charca con ranking semanal, historial con reprogramación en varios días.
 
 ## 1. Cuentas y sincronización (necesario para escalar)
 
-- Backend con **Supabase** (Postgres + Auth + Row Level Security) es la opción más rápida: tablas `tasks`, `lists`, `history`, `frogs`, `profiles`.
-- Implementar `StorageAdapter` contra la API y sincronizar por `updatedAt` (último en escribir gana) o, mejor, guardar *eventos* (`complete`, `penalty`…) y recalcular: el historial ya está modelado así.
+- ~~Backend con Supabase~~ (hecho: perfiles, amistades y estado en JSON).
+- Siguiente paso: tablas normalizadas (`tasks`, `history`) y fusión por entidad en lugar de "gana el último"; guardar *eventos* y recalcular en servidor para que el ranking no se pueda falsear.
 - **El cierre diario debe pasar al servidor** (cron a medianoche por zona horaria del usuario). Hoy se ejecuta al abrir la app, lo que es suficiente en local pero manipulable.
 - Iniciar sesión con Google/Apple para reducir fricción.
 
@@ -31,7 +33,7 @@ Lo que hay en la v0.1 es un producto completo para un solo dispositivo. Esto es 
 - **Protector de racha** comprable en la tienda (como Duolingo): salva la racha un día.
 - **Comida/cuidados**: gastar monedas en moscas para subir el ánimo; añade un sumidero de monedas recurrente.
 - **Eventos de temporada** (gorro de Papá Noel en diciembre, calabaza en octubre): artículos limitados que generan visitas.
-- **Social**: charca compartida con amigos o pareja, retos semanales, ver las ranas de otros.
+- **Social** (base hecha): retos semanales entre amigos, reacciones («¡croac!») a las tareas de otros, ligas tipo Duolingo, tareas compartidas en pareja.
 
 ## 5. Monetización
 

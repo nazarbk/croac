@@ -57,9 +57,12 @@ export function TaskEditor() {
         time: task.time ?? '', subtasks: task.subtasks, status: task.status,
       });
     } else {
+      const tpl = editor.defaults?.template;
       setDraft({
-        title: '', notes: '', listId: editor.defaults?.listId ?? INBOX_ID, tags: '', priority: 4, difficulty: 'easy',
-        recurrence: NO_REPEAT, date: editor.defaults?.date === undefined ? today : editor.defaults.date, time: '', subtasks: [], status: 'todo',
+        title: tpl?.title ?? '', notes: tpl?.notes ?? '', listId: tpl?.listId ?? editor.defaults?.listId ?? INBOX_ID,
+        tags: (tpl?.tags ?? []).join(', '), priority: tpl?.priority ?? 4, difficulty: tpl?.difficulty ?? 'easy',
+        recurrence: tpl?.recurrence ?? NO_REPEAT, date: editor.defaults?.date === undefined ? today : editor.defaults.date,
+        time: tpl?.time ?? '', subtasks: (tpl?.subtasks ?? []).map((s) => emptySubtask(s.title)), status: 'todo',
       });
     }
     setNewSub('');

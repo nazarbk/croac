@@ -17,12 +17,19 @@ Inspirado en lo que ya funciona: la entrada rápida y las vistas *Hoy/Próximo* 
 - Vistas **Hoy** (atrasadas, para hoy, completadas hoy), **Próximo** (14 días, con las repeticiones futuras) y **Todas las tareas** (agrupadas por fecha, con búsqueda y filtros por estado).
 - **Orden personalizado arrastrando** las tarjetas (ratón, dedo o teclado con ↑/↓ sobre el asa), o el orden automático por prioridad y hora.
 - **Subtareas dentro de la tarjeta**: se ven, se marcan, se añaden y se quitan sin abrir el editor. Al terminarlas todas, la app propone completar la tarea.
+- **Historial**: todas las tareas completadas agrupadas por día, con búsqueda. Desde ahí puedes **volver a programar** una tarea (con sus notas, etiquetas y subtareas) en uno o varios días a la vez, o convertirla en repetición.
 - **Gestos en el móvil**: desliza una tarjeta a la derecha para completarla y a la izquierda para pasarla a mañana. Botón flotante **+** para añadir desde cualquier pantalla.
 
 **La rana**
 - 5 etapas de evolución: Renacuajo (nv. 1) → Renacuajo con patas (5) → Ranita (10) → Rana (20) → Rana sabia (35).
 - Su ánimo refleja cómo vas: feliz, tranquila, inquieta (tareas de ayer), triste (tareas que ya penalizan) o dormida (modo vacaciones).
 - Tienda con 29 artículos en 5 categorías (sombreros, cuello, gafas, pieles y fondos), algunos bloqueados por nivel y otros exclusivos de Pro.
+
+**Cuenta, amigos y charca** (opcional, con Supabase)
+- Cuenta con email y contraseña: tus tareas y tu rana se **sincronizan** entre el móvil y el ordenador. Sin cuenta, la app sigue funcionando en local.
+- **Amigos**: cada usuario tiene un código de amigo; se añade por código o con un enlace de invitación (WhatsApp, etc.). Solicitudes, aceptar, rechazar y quitar.
+- **La charca**: ves las ranas de tus amigos (con sus complementos) sobre nenúfares y un **ranking semanal** de XP y tareas completadas. La líder lleva corona.
+- Configuración en [`docs/CUENTAS.md`](docs/CUENTAS.md).
 
 **Reglas del juego**
 | Evento | Efecto |
@@ -97,7 +104,9 @@ src/
 │                  lista arrastrable, editor), frog/, brand/ (logo), layout/
 ├── features/      Piezas transversales: revisión diaria, bienvenida, celebraciones,
 │                  recordatorios, atajos, instalación (PWA)
-├── pages/         Una por ruta: Hoy, Próximo, Tareas, Rana, Tienda, Estadísticas, Ajustes
+├── pages/         Una por ruta: Hoy, Próximo, Tareas, Historial, Rana, Charca, Amigos,
+│                  Tienda, Estadísticas, Ajustes
+├── services/      Backend opcional (Supabase por REST): cuenta, sincronización, amigos
 └── lib/           Router por hash, sonidos, utilidades
 ```
 
@@ -111,7 +120,13 @@ Decisiones pensadas para crecer:
 
 Para regenerar iconos y pantallas de arranque a partir del logo, el dibujo está en `public/logo.svg` (512×512).
 
-Más detalle y próximos pasos en [`docs/ROADMAP.md`](docs/ROADMAP.md).
+## Documentación
+
+- [`docs/RESUMEN.md`](docs/RESUMEN.md): resumen técnico completo (para revisiones).
+- [`docs/AUDITORIA.md`](docs/AUDITORIA.md): auditoría de calidad, seguridad y escalado, con lo pendiente priorizado.
+- [`docs/IMAGENES.md`](docs/IMAGENES.md): lista de todas las imágenes, con prompts para generarlas con IA.
+- [`docs/CUENTAS.md`](docs/CUENTAS.md): cómo activar cuentas, sincronización y amigos con Supabase.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md): próximos pasos.
 
 ## Licencia
 

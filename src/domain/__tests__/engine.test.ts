@@ -5,7 +5,7 @@ import {
   completionDates, tasksForReview, undoCompletion,
 } from '../engine';
 import { levelInfo, totalXpForLevel, stageForLevel, PERFECT_DAY_BONUS } from '../progression';
-import { buildTask, compareFor, reorderTasks, updateTaskFields, type TaskInput } from '../tasks';
+import { buildCopies, buildTask, compareFor, reorderTasks, templateOf, updateTaskFields, type TaskInput } from '../tasks';
 import type { AppState, Ctx } from '../types';
 
 const ctx = (today: string): Ctx => ({ today, now: Date.parse(`${today}T12:00:00`) });
@@ -227,5 +227,18 @@ describe('orden personalizado', () => {
     const ids = ['B', 'A', 'C', 'D'].map((n) => ts.find((t) => t.title === n)!.id);
     const next = reorderTasks(ts, ids, 'smart');
     expect(titles(next, 'manual')).toEqual(['B', 'A', 'C', 'D']);
+  });
+});
+
+describe('volver a programar desde el historial', () => {
+  it('crea una copia por fecha, sin repetidos y con subtareas sin marcar', () => {
+    const s = withTasks([{ title: 'Regar', listId: 'personal', priority: 2, difficulty: 'easy', subtasks: [{ id: 'x', title: 'Balcón', done: true }] }]);
+    const tpl = templateOf(s.tasks[0]);
+    const copies = buildCopies(tpl, ['2026-11-12', '2026-11-10', '2026-11-12'], ctx('2026-11-10'), 10);
+    expect(copies.map((t) => t.dueDate)).toEqual(['2026-11-10', '2026-11-12']);
+    expect(copies[0].priority).toBe(2);
+    expect(copies[0].subtasks[0].done).toBe(false);
+    expect(copies[0].subtasks[0].id === 'x').toBe(false);
+    expect(copies[0].recurrence).toEqual({ type: 'none' });
   });
 });

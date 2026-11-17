@@ -11,9 +11,17 @@ export const appStore = createStore<AppState>(migrate(storage.load()) ?? createI
 
 /* Guardado con debounce + al cerrar la pestaña. */
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
+let warnedStorage = false;
 const flush = () => {
   clearTimeout(saveTimer);
-  storage.save(appStore.get());
+  const ok = storage.save(appStore.get());
+  if (!ok && !warnedStorage && typeof window !== 'undefined') {
+    warnedStorage = true;
+    // Import diferido para no crear dependencias circulares.
+    void import('./uiStore').then(({ ui }) =>
+      ui.toast({ message: 'No se pueden guardar los cambios en este navegador. Exporta una copia desde Ajustes.', tone: 'danger', duration: 10000 }),
+    );
+  }
 };
 appStore.subscribe(() => {
   clearTimeout(saveTimer);

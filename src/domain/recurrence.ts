@@ -1,6 +1,6 @@
 import {
   addDays, dayOfMonth, daysInMonth, diffDays, monthIndex, startOfWeek, weekday,
-  WEEKDAYS_SHORT, type DateStr,
+  WEEKDAYS, WEEKDAYS_SHORT, type DateStr,
 } from './dates';
 
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -116,8 +116,10 @@ export function describeRecurrence(r: Recurrence): string {
       if (r.interval === 1 && sameDays(r.days, [0, 6])) return 'Fines de semana';
       if (r.interval === 1 && r.days.length === 7) return 'Cada día';
       const ordered = [...r.days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
-      const names = ordered.map((d) => WEEKDAYS_SHORT[d]).join(', ');
-      return r.interval === 1 ? `Cada semana: ${names}` : `Cada ${r.interval} semanas: ${names}`;
+      const short = ordered.map((d) => WEEKDAYS_SHORT[d]);
+      const names = short.length > 1 ? `${short.slice(0, -1).join(', ')} y ${short[short.length - 1]}` : short[0];
+      if (r.interval === 1) return ordered.length === 1 ? `Cada ${WEEKDAYS[ordered[0]]}` : `Cada ${names}`;
+      return `Cada ${r.interval} semanas: ${names}`;
     }
     case 'monthly':
       return r.interval === 1 ? `Cada mes, el día ${r.dayOfMonth}` : `Cada ${r.interval} meses, el día ${r.dayOfMonth}`;

@@ -30,6 +30,8 @@ describe('entrada rápida', () => {
     expect(parseQuickAdd('Regar plantas cada 3 días', today).recurrence).toEqual({ type: 'daily', interval: 3 });
     expect(parseQuickAdd('Gimnasio cada lunes, miércoles y viernes', today).recurrence)
       .toEqual({ type: 'weekly', interval: 1, days: [1, 3, 5] });
+    expect(parseQuickAdd('Inglés los martes, jueves y sábados', today).recurrence)
+      .toEqual({ type: 'weekly', interval: 1, days: [2, 4, 6] });
     expect(parseQuickAdd('Correo días laborables', today).recurrence)
       .toEqual({ type: 'weekly', interval: 1, days: [1, 2, 3, 4, 5] });
     expect(parseQuickAdd('Pagar alquiler el 1 de cada mes', today).recurrence)

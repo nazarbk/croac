@@ -51,7 +51,10 @@ describe('recurrencias', () => {
   it('describe en español', () => {
     expect(describeRecurrence({ type: 'daily', interval: 1 })).toBe('Cada día');
     expect(describeRecurrence({ type: 'weekly', interval: 1, days: [1, 2, 3, 4, 5] })).toBe('Días laborables');
-    expect(describeRecurrence({ type: 'weekly', interval: 1, days: [0, 1] })).toBe('Cada semana: lun, dom');
+    expect(describeRecurrence({ type: 'weekly', interval: 1, days: [0, 1] })).toBe('Cada lun y dom');
+    expect(describeRecurrence({ type: 'weekly', interval: 1, days: [2, 4, 6] })).toBe('Cada mar, jue y sáb');
+    expect(describeRecurrence({ type: 'weekly', interval: 1, days: [3] })).toBe('Cada miércoles');
+    expect(describeRecurrence({ type: 'weekly', interval: 2, days: [1, 3] })).toBe('Cada 2 semanas: lun y mié');
   });
 
   it('no programa nada antes del ancla', () => {

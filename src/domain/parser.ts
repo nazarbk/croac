@@ -75,7 +75,7 @@ const rules: Rule[] = [
   { phase: 1, re: new RegExp(`${B}(dias laborables|entre semana|de lunes a viernes)${E}`, 'u'), kind: 'recurrence', apply: (_m, o) => { o.recurrence = { type: 'weekly', interval: 1, days: [1, 2, 3, 4, 5] }; } },
   { phase: 1, re: new RegExp(`${B}(los fines de semana|cada fin de semana|fines de semana)${E}`, 'u'), kind: 'recurrence', apply: (_m, o) => { o.recurrence = { type: 'weekly', interval: 1, days: [0, 6] }; } },
   {
-    phase: 1, re: new RegExp(`${B}(?:cada|todos los) ${DAY_RE}s?((?:(?:, ?| y | e )${DAY_RE}s?)*)${E}`, 'u'),
+    phase: 1, re: new RegExp(`${B}(?:cada|todos los|los) ${DAY_RE}s?((?:(?:, ?| y | e )${DAY_RE}s?)*)${E}`, 'u'),
     kind: 'recurrence',
     apply: (m, o) => {
       const names = m[0].match(new RegExp(DAY_RE, 'g')) ?? [];
