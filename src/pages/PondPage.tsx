@@ -116,7 +116,7 @@ export function PondPage() {
         {session && profile && <IconButton icon="refresh" label="Actualizar" onClick={() => void social.refresh()} className={cn(loading && 'animate-spin')} />}
       </header>
 
-      <div className={cn('relative mt-6 rounded-[1.75rem] overflow-hidden border border-line shadow-card sm:aspect-[16/10]', visible.length <= 3 ? 'aspect-[5/4]' : 'aspect-square')}>
+      <div className={cn('relative isolate mt-6 rounded-[1.75rem] overflow-hidden border border-line shadow-card sm:aspect-[16/10]', visible.length <= 3 ? 'aspect-[5/4]' : 'aspect-square')}>
         <PondBackground />
         {visible.map((f, i) => {
           const [x, y, size] = SLOTS[i];
