@@ -366,6 +366,7 @@ export function buyItem(state: AppState, itemId: string, ctx: Ctx): { state: App
     level: levelInfo(state.frog.xp).level,
     owned: state.frog.owned,
     isPro: can(state.meta.plan, 'premiumItems'),
+    today: ctx.today,
   });
   if (!check.ok || !item) return { state, ok: false, reason: check.ok ? 'unknown' : check.reason };
   const entry: HistoryEntry = {

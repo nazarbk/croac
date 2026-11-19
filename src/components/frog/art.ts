@@ -2,7 +2,7 @@
 import type { StageId } from '../../domain/progression';
 
 /** Súbelo cuando cambies las imágenes de public/art para invalidar la caché. */
-export const ART_VERSION = 1;
+export const ART_VERSION = 2;
 export const art = (path: string) => `${import.meta.env.BASE_URL}art/${path}?v=${ART_VERSION}`;
 
 export interface Rect { x: number; y: number; w: number; h: number }
@@ -18,25 +18,44 @@ export const STAGE_ART: Record<StageId, StageArt> = {
   sage: { rect: { x: 28.68, y: 40.52, w: 182.64, h: 193.24 }, hat: [120.0, 83.26, 126.88], eyes: [120.0, 99.66, 58.69], neck: [120.0, 163.54, 107.03] },
 };
 
-export interface ItemArt { ratio: number; w: number; ax: number; ay: number; dx?: number; center?: boolean }
+export interface ItemArt {
+  ratio: number;
+  /** Ancho respecto a la referencia del ancla (cabeza, separación de ojos o cuello). */
+  w: number;
+  /** Punto del dibujo (0-1) que cae en el ancla. */
+  ax: number;
+  ay: number;
+  /** Desplazamiento horizontal en separaciones de ojos (p. ej. el monóculo). */
+  dx?: number;
+  /** Centrado en la cara en vez de apoyado encima: desplazamiento vertical desde los ojos. */
+  center?: number;
+  /** No pintar los ojos por encima (cascos y capuchas que rodean la cabeza). */
+  noEyes?: boolean;
+}
 export const ITEM_ART: Record<string, ItemArt> = {
-  'hat-party': { ratio: 1.4271, w: 0.42, ax: 0.5, ay: 0.95 },
-  'hat-cap': { ratio: 0.9066, w: 0.62, ax: 0.5, ay: 0.74 },
-  'hat-tophat': { ratio: 0.7511, w: 0.62, ax: 0.5, ay: 0.9 },
-  'hat-beanie': { ratio: 1.0011, w: 0.62, ax: 0.5, ay: 0.74 },
-  'hat-wizard': { ratio: 0.7529, w: 0.68, ax: 0.5, ay: 0.86 },
-  'hat-flower': { ratio: 0.6237, w: 0.42, ax: 0.5, ay: 0.8 },
-  'hat-crown': { ratio: 0.6105, w: 0.56, ax: 0.5, ay: 0.92 },
-  'hat-astronaut': { ratio: 0.8383, w: 1.22, ax: 0.5, ay: 0.5, center: true },
-  'hat-beret': { ratio: 0.6321, w: 0.62, ax: 0.5, ay: 0.85 },
-  'neck-bandana': { ratio: 0.6131, w: 0.8, ax: 0.5, ay: 0.18 },
-  'neck-tie': { ratio: 1.1042, w: 0.52, ax: 0.5, ay: 0.1 },
-  'neck-bowtie': { ratio: 0.5005, w: 0.5, ax: 0.5, ay: 0.12 },
-  'neck-scarf': { ratio: 0.937, w: 0.68, ax: 0.5, ay: 0.16 },
-  'neck-pearls': { ratio: 0.4819, w: 0.82, ax: 0.5, ay: 0.25 },
-  'neck-medal': { ratio: 1.088, w: 0.55, ax: 0.5, ay: 0.08 },
-  'eyes-round': { ratio: 0.4223, w: 1.95, ax: 0.5, ay: 0.5 },
-  'eyes-sun': { ratio: 0.3817, w: 2.0, ax: 0.5, ay: 0.5 },
-  'eyes-monocle': { ratio: 0.9774, w: 0.7, ax: 0.4, ay: 0.4, dx: 0.5 },
-  'eyes-heart': { ratio: 0.4148, w: 2.0, ax: 0.5, ay: 0.5 },
+  'neck-tie': { ratio: 2.0831, w: 0.26, ax: 0.5, ay: 0.04 },
+  'neck-bandana': { ratio: 0.6763, w: 0.78, ax: 0.5, ay: 0.12 },
+  'neck-pearls': { ratio: 0.3874, w: 0.78, ax: 0.5, ay: 0.2 },
+  'neck-scarf': { ratio: 0.7011, w: 0.84, ax: 0.5, ay: 0.14 },
+  'neck-bowtie': { ratio: 0.4838, w: 0.48, ax: 0.5, ay: 0.25 },
+  'eyes-sun': { ratio: 0.365, w: 1.92, ax: 0.5, ay: 0.5 },
+  'eyes-round': { ratio: 0.4146, w: 1.96, ax: 0.5, ay: 0.5 },
+  'eyes-heart': { ratio: 0.4179, w: 2.0, ax: 0.5, ay: 0.5 },
+  'neck-medal': { ratio: 1.0956, w: 0.52, ax: 0.5, ay: 0.04 },
+  'eyes-monocle': { ratio: 1.4711, w: 0.64, ax: 0.4, ay: 0.29, dx: 0.5 },
+  'hat-party': { ratio: 1.5182, w: 0.4, ax: 0.5, ay: 0.95 },
+  'hat-beanie': { ratio: 0.9624, w: 0.64, ax: 0.5, ay: 0.82 },
+  'hat-beret': { ratio: 0.5813, w: 0.66, ax: 0.5, ay: 0.8 },
+  'hat-flower': { ratio: 0.6112, w: 0.5, ax: 0.5, ay: 0.82 },
+  'hat-tophat': { ratio: 0.6637, w: 0.62, ax: 0.5, ay: 0.94 },
+  'hat-cap': { ratio: 0.8133, w: 0.62, ax: 0.5, ay: 0.88 },
+  'hat-wizard': { ratio: 0.8596, w: 0.72, ax: 0.5, ay: 0.92 },
+  'hat-crown': { ratio: 0.5692, w: 0.58, ax: 0.5, ay: 0.92 },
+  'hat-astronaut': { ratio: 0.8838, w: 1.08, ax: 0.5, ay: 0.5, center: 0.3, noEyes: true },
+  'neck-s1-scarf': { ratio: 0.6731, w: 0.84, ax: 0.5, ay: 0.14 },
+  'neck-s1-axe': { ratio: 1.513, w: 0.54, ax: 0.5, ay: 0.03 },
+  'eyes-s1-candy': { ratio: 0.6919, w: 2.0, ax: 0.5, ay: 0.64 },
+  'hat-s1-bear': { ratio: 0.7789, w: 1.1, ax: 0.5, ay: 0.5, center: -0.06, noEyes: true },
+  'eyes-s1-cloud': { ratio: 0.4689, w: 2.06, ax: 0.5, ay: 0.6 },
+  'hat-s1-icecrown': { ratio: 0.8589, w: 0.6, ax: 0.5, ay: 0.95 },
 };

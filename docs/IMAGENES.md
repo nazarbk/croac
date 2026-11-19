@@ -27,6 +27,12 @@ Todas las ranas de una misma etapa comparten encuadre, así que cada complemento
 
 Las gafas se ocultan cuando la rana duerme.
 
+## Temporadas
+
+Los complementos de temporada siguen el mismo sistema: imagen en `public/art/acc/<id>.webp` (ids con el número de temporada, p. ej. `hat-s1-bear`) y su encaje en `ITEM_ART`. Las pieles de temporada se generan recoloreando la rana verde a partir de una sola ilustración de la rana adulta neutral (`public/art/frog/skin-s1-*`).
+
+Temporada 1 «Hora de aventuras» (originales en `design/originales/temporada-1/`): gorro de oso, bufanda perruna, gafas de caramelo, gafas de nube, colgante bajo-hacha, corona helada, piel perruna y piel consola (a la rana adulta se le añaden los botones de la barriga).
+
 ## Cambiar o añadir ilustraciones
 
 1. Mantén el **mismo encuadre** que la imagen que sustituyes (misma pose y tamaño en el lienzo), o habrá que reajustar los anclajes.
@@ -44,9 +50,7 @@ Las gafas se ocultan cuando la rana duerme.
 | Rana adulta | (48 recoloreada), 8, 10, 6, 5 |
 | Rana sabia | 1, 15, 17, 19, 18 |
 | Pieles (adulta neutral) | azul 44, medianoche 47, rosa 48, dorada 49 |
-| Sombreros | fiesta 25, gorra 26, chistera 27, lana 28, mago 29, flor 30, corona 31, casco 33, boina 34 |
-| Cuello | pañuelo 32, corbata 35, pajarita 36, bufanda 37, perlas 38 (solo la mitad inferior), medalla 40 |
-| Gafas | redondas 39, sol 41, corazón 43, monóculo 66 |
+| Complementos (v1.1, rediseñados) | `design/originales/temporada-1/`: corbata 1, pañuelo 2, perlas 3, bufanda 4, pajarita 5, gafas de sol 6, redondas 7, corazón 8, medalla 9, monóculo 11, fiesta 12, lana 13, boina 14, flor 15, chistera 16, gorra 17, mago 18, corona 20, visor espacial 22 |
 | Fondos | charca 46, atardecer 52, noche 51, lluvia 53, espacio 55 |
 | Charca de amigos | día 45 / 54, noche 50 / 67 |
 | Interfaz | moneda 56, XP 60, trofeo 68, vacíos 59, 65, 69 |

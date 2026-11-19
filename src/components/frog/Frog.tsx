@@ -1,15 +1,17 @@
 import { useId } from 'react';
 import type { Mood } from '../../domain/engine';
 import { stageForLevel, type StageId } from '../../domain/progression';
+import { CATALOG } from '../../domain/shop';
 import type { Slot } from '../../domain/types';
 import { cn } from '../../lib/cn';
 import { art, ITEM_ART, STAGE_ART, type AnchorTuple, type Rect } from './art';
 
-const SKINS = ['skin-green', 'skin-blue', 'skin-pink', 'skin-gold', 'skin-midnight'];
+/** Pieles con ilustraciones propias (las de las temporadas incluidas). */
+const SKINS = new Set(CATALOG.filter((i) => i.slot === 'skin').map((i) => i.id));
 const BACKGROUNDS = ['bg-pond', 'bg-sunset', 'bg-night', 'bg-rain', 'bg-space'];
 
 export const frogUrl = (stage: StageId, mood: Mood, skin?: string) =>
-  art(`frog/${skin && SKINS.includes(skin) ? skin : 'skin-green'}/${stage}-${mood}.webp`);
+  art(`frog/${skin && SKINS.has(skin) ? skin : 'skin-green'}/${stage}-${mood}.webp`);
 export const backgroundUrl = (id?: string) => art(`bg/${id && BACKGROUNDS.includes(id) ? id : 'bg-pond'}.webp`);
 export const itemUrl = (id: string) => art(`acc/${id}.webp`);
 
@@ -20,10 +22,10 @@ function itemRect(id: string, stage: StageId): Rect | null {
   const s = STAGE_ART[stage];
   const slot = id.split('-')[0] as 'hat' | 'neck' | 'eyes';
   let [x, y, ref]: AnchorTuple = s[slot];
-  if (item.center) {
-    // El casco va centrado en la cabeza, no apoyado encima.
+  if (item.center !== undefined) {
+    // Cascos y capuchas: centrados en la cara, no apoyados encima.
     x = s.eyes[0];
-    y = s.eyes[1] + s.eyes[2] * 0.12;
+    y = s.eyes[1] + s.eyes[2] * item.center;
   }
   const w = ref * item.w;
   const h = w * item.ratio;
@@ -85,7 +87,7 @@ export function Frog({ level, mood = 'neutral', equipped = {}, scene = false, ho
           <feDropShadow dx="0" dy="1.2" stdDeviation="1" floodColor="#123b22" floodOpacity="0.28" />
         </filter>
         {neck && <clipPath id={`${uid}-head`}><rect x="0" y="0" width="240" height={sa.neck[1] + TUCK} /></clipPath>}
-        {hat && hat !== 'hat-astronaut' && (
+        {hat && !ITEM_ART[hat]?.noEyes && (
           <clipPath id={`${uid}-eyes`}>
             <circle cx={ex - span / 2} cy={ey} r={span * EYE_BUMP} />
             <circle cx={ex + span / 2} cy={ey} r={span * EYE_BUMP} />
@@ -98,7 +100,8 @@ export function Frog({ level, mood = 'neutral', equipped = {}, scene = false, ho
           <g className="frog-idle">
             {frogImg()}
             {neck && <>{item(neck)}{frogImg(`${uid}-head`)}</>}
-            {hat && <>{item(hat)}{hat !== 'hat-astronaut' && frogImg(`${uid}-eyes`)}</>}
+            {hat && <>{item(hat)}{!ITEM_ART[hat]?.noEyes && frogImg(`${uid}-eyes`)}</>}
+            {/* Las gafas siempre por delante de todo, también del sombrero. */}
             {item(eyes)}
           </g>
         </g>

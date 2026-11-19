@@ -1,3 +1,5 @@
+import type { DateStr } from './dates';
+import { inSeason, SEASONS } from './seasons';
 import type { Slot } from './types';
 
 export interface ShopItem {
@@ -10,6 +12,10 @@ export interface ShopItem {
   /** Solo para el plan Pro. */
   premium?: boolean;
   description: string;
+  /** Artículo de temporada: solo se puede comprar mientras dure (ver seasons.ts). */
+  season?: string;
+  /** Oculto en la tienda (p. ej. pendiente de revisar el diseño). */
+  hidden?: boolean;
 }
 
 export const SLOTS: { id: Slot; label: string; plural: string }[] = [
@@ -24,7 +30,7 @@ export const SLOTS: { id: Slot; label: string; plural: string }[] = [
 export const DEFAULT_OWNED = ['skin-green', 'bg-pond'];
 export const DEFAULT_EQUIPPED = { skin: 'skin-green', background: 'bg-pond' } as const;
 
-export const CATALOG: ShopItem[] = [
+const BASE_CATALOG: ShopItem[] = [
   // Sombreros
   { id: 'hat-party', slot: 'hat', name: 'Gorrito de fiesta', price: 40, minLevel: 1, description: 'Para celebrar cada tarea.' },
   { id: 'hat-flower', slot: 'hat', name: 'Flor de charca', price: 30, minLevel: 1, description: 'Recién cogida del nenúfar.' },
@@ -61,18 +67,22 @@ export const CATALOG: ShopItem[] = [
   { id: 'bg-space', slot: 'background', name: 'Espacio', price: 400, minLevel: 10, premium: true, description: 'Un pequeño salto para una rana.' },
 ];
 
+/** Todo lo que existe: la tienda fija y los artículos de todas las temporadas. */
+export const CATALOG: ShopItem[] = [...BASE_CATALOG, ...SEASONS.flatMap((s) => s.items)];
+
 export const itemById = (id: string | undefined) => CATALOG.find((i) => i.id === id);
 
 export type PurchaseCheck =
   | { ok: true }
-  | { ok: false; reason: 'owned' | 'level' | 'coins' | 'premium' | 'unknown' };
+  | { ok: false; reason: 'owned' | 'level' | 'coins' | 'premium' | 'season' | 'unknown' };
 
 export function canBuy(
   item: ShopItem | undefined,
-  ctx: { coins: number; level: number; owned: string[]; isPro: boolean },
+  ctx: { coins: number; level: number; owned: string[]; isPro: boolean; today: DateStr },
 ): PurchaseCheck {
-  if (!item) return { ok: false, reason: 'unknown' };
+  if (!item || item.hidden) return { ok: false, reason: 'unknown' };
   if (ctx.owned.includes(item.id)) return { ok: false, reason: 'owned' };
+  if (!inSeason(item, ctx.today)) return { ok: false, reason: 'season' };
   if (item.premium && !ctx.isPro) return { ok: false, reason: 'premium' };
   if (ctx.level < item.minLevel) return { ok: false, reason: 'level' };
   if (ctx.coins < item.price) return { ok: false, reason: 'coins' };

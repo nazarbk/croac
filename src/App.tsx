@@ -24,6 +24,8 @@ import { useCloudSync } from './services/sync';
 import { account } from './services/account';
 import { ErrorBoundary } from './features/ErrorBoundary';
 import { ScheduleAgain } from './features/ScheduleAgain';
+import { WhatsNew } from './features/WhatsNew';
+import { NewsPage } from './pages/NewsPage';
 import { tickClock, useApp } from './store/appStore';
 
 const PAGES: Record<RouteName, { title: string; Component: () => React.ReactElement }> = {
@@ -37,6 +39,7 @@ const PAGES: Record<RouteName, { title: string; Component: () => React.ReactElem
   tienda: { title: 'Tienda', Component: ShopPage },
   estadisticas: { title: 'Estadísticas', Component: StatsPage },
   ajustes: { title: 'Ajustes', Component: SettingsPage },
+  novedades: { title: 'Novedades', Component: NewsPage },
 };
 
 function useTheme() {
@@ -106,6 +109,7 @@ export default function App() {
       <NewPasswordModal />
       <SyncConflictModal />
       <ScheduleAgain />
+      <WhatsNew />
     </>
   );
 }

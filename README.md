@@ -26,6 +26,10 @@ Inspirado en lo que ya funciona: la entrada rápida y las vistas *Hoy/Próximo* 
 - Su ánimo refleja cómo vas: feliz, tranquila, inquieta (tareas de ayer), triste (tareas que ya penalizan) o dormida (modo vacaciones).
 - Tienda con 29 artículos en 5 categorías (sombreros, cuello, gafas, pieles y fondos), algunos bloqueados por nivel y otros exclusivos de Pro.
 
+**Temporadas y novedades**
+- **Temporadas en la tienda**: cada semana, una colección de complementos que solo se puede comprar durante 7 días (lo comprado es para siempre). Completando tareas a diario da para unos 3 artículos por temporada. Se definen en [`src/domain/seasons.ts`](src/domain/seasons.ts).
+- **Tablón de novedades** (menú → Novedades) y una ventana «Novedades en Croac» que sale una vez tras cada actualización. Se escribe en [`src/content/changelog.ts`](src/content/changelog.ts).
+
 **Cuenta, amigos y charca** (opcional, con Supabase)
 - Cuenta con email y contraseña (recuperación de contraseña y opción de borrar la cuenta): tus tareas y tu rana se **sincronizan** entre el móvil y el ordenador. Sin cuenta, la app sigue funcionando en local.
 - **Amigos**: cada usuario tiene un código de amigo; se añade por código o con un enlace de invitación (WhatsApp, etc.). Al abrir una invitación y crear la cuenta, la solicitud se envía sola.
@@ -75,6 +79,12 @@ npm run dev        # http://localhost:5173
 | `npm test` | Tests de la lógica (Vitest) |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript sin emitir |
+
+### Publicar una actualización
+
+1. Sube `version` en `package.json` y añade la entrada con esa misma versión al principio de `src/content/changelog.ts`.
+2. Si hay temporada nueva: imágenes en `public/art/acc/`, su encaje en `src/components/frog/art.ts` y la temporada en `src/domain/seasons.ts` (fechas sin solaparse).
+3. `git push`. Vercel la publica y, al abrir la app, cada uno verá las novedades.
 
 ### Publicar y compartir con tus amigos
 

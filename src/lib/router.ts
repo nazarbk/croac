@@ -5,14 +5,14 @@ import { createStore, useStore } from '../store/createStore';
  * configurar redirecciones. Si más adelante hace falta SSR o rutas reales,
  * se puede cambiar por React Router manteniendo `navigate` y `useRoute`.
  */
-export type RouteName = 'hoy' | 'proximo' | 'tareas' | 'historial' | 'rana' | 'charca' | 'amigos' | 'tienda' | 'estadisticas' | 'ajustes';
+export type RouteName = 'hoy' | 'proximo' | 'tareas' | 'historial' | 'rana' | 'charca' | 'amigos' | 'tienda' | 'estadisticas' | 'ajustes' | 'novedades';
 
 export interface Route {
   name: RouteName;
   params: URLSearchParams;
 }
 
-const ROUTES: RouteName[] = ['hoy', 'proximo', 'tareas', 'historial', 'rana', 'charca', 'amigos', 'tienda', 'estadisticas', 'ajustes'];
+const ROUTES: RouteName[] = ['hoy', 'proximo', 'tareas', 'historial', 'rana', 'charca', 'amigos', 'tienda', 'estadisticas', 'ajustes', 'novedades'];
 
 function parse(hash: string): Route {
   const clean = hash.replace(/^#\/?/, '');

@@ -13,6 +13,7 @@ import { Coin, Icon, type IconName } from '../ui/Icon';
 import { IconButton } from '../ui/Button';
 import { ListModal } from './ListModal';
 import { NotificationsPanel } from './NotificationsPanel';
+import { useHasNews } from '../../features/WhatsNew';
 
 function NavLink({ to, icon, label, count, active, params, accent, trailing }: {
   to: RouteName; icon?: IconName; label: string; count?: number; active: boolean;
@@ -40,6 +41,7 @@ function Sidebar() {
   const lists = useApp((s) => s.lists);
   const tasks = useApp((s) => s.tasks);
   const coins = useApp((s) => s.frog.coins);
+  const hasNews = useHasNews();
   const { due, overdue } = useTodayGroups();
   const info = useFrogInfo();
   const [listModal, setListModal] = useState(false);
@@ -92,6 +94,10 @@ function Sidebar() {
         />
         <NavLink to="estadisticas" icon="chart" label="Estadísticas" active={route.name === 'estadisticas'} />
         <NavLink to="ajustes" icon="settings" label="Ajustes" active={route.name === 'ajustes'} />
+        <NavLink
+          to="novedades" icon="sparkles" label="Novedades" active={route.name === 'novedades'}
+          trailing={hasNews ? <span className="w-2 h-2 rounded-full bg-danger" aria-label="Hay novedades" /> : undefined}
+        />
       </div>
       <ListModal open={listModal} onClose={() => setListModal(false)} />
     </aside>
@@ -173,6 +179,7 @@ function MobileQuickAdd() {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const hasNews = useHasNews();
   const notifOpen = useUi((s) => s.notificationsOpen);
   useToday();
   return (
@@ -188,13 +195,19 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <div className="lg:hidden">
                   <Menu
                     title="Más"
-                    trigger={(p) => <IconButton icon="menu" label="Más opciones" {...p} />}
+                    trigger={(p) => (
+                      <span className="relative inline-flex">
+                        <IconButton icon="menu" label="Más opciones" {...p} />
+                        {hasNews && <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-danger ring-2 ring-bg pointer-events-none" />}
+                      </span>
+                    )}
                     items={[
                       { label: 'Tienda', icon: 'bag', onSelect: () => navigate('tienda') },
                       { label: 'Amigos', icon: 'users', onSelect: () => navigate('amigos') },
                       { label: 'Historial', icon: 'history', onSelect: () => navigate('historial') },
                       { label: 'Estadísticas', icon: 'chart', onSelect: () => navigate('estadisticas') },
                       { label: 'Ajustes', icon: 'settings', onSelect: () => navigate('ajustes') },
+                      { label: hasNews ? 'Novedades · nuevo' : 'Novedades', icon: 'sparkles', onSelect: () => navigate('novedades') },
                     ]}
                   />
                 </div>
