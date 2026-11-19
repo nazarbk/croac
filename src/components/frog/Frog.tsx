@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { Mood } from '../../domain/engine';
 import { stageForLevel, type StageId } from '../../domain/progression';
 import type { Slot } from '../../domain/types';
@@ -30,6 +31,16 @@ function itemRect(id: string, stage: StageId): Rect | null {
   return { x: x - w * item.ax, y: y - h * item.ay, w, h };
 }
 
+/**
+ * Capas para que los complementos parezcan puestos y no pegados encima:
+ * - Cuello: la cabeza se vuelve a pintar encima de la parte alta del complemento,
+ *   así el cuello de la corbata, el pañuelo o la cinta de la medalla quedan bajo la barbilla.
+ * - Sombreros: los ojos (que en las ranas están encima de la cabeza) se pintan encima del
+ *   sombrero, que queda apoyado entre ellos.
+ */
+const TUCK = 2.5; // unidades bajo el ancla del cuello
+const EYE_BUMP = 0.43; // radio del ojo respecto a la separación entre ojos
+
 /** La rana encima del nenúfar del fondo: los fondos tienen el nenúfar a ~84 % de alto. */
 const ON_PAD = 'translate(120 202) scale(.86) translate(-120 -228)';
 
@@ -49,28 +60,46 @@ export interface FrogProps {
 }
 
 export function Frog({ level, mood = 'neutral', equipped = {}, scene = false, hopKey = 0, className, title, stageOverride, align = 'center' }: FrogProps) {
+  const uid = useId().replace(/:/g, '');
   const stage = stageOverride ?? stageForLevel(level).id;
-  const body = STAGE_ART[stage].rect;
-  const slots: ['neck' | 'eyes' | 'hat', string | undefined][] = [
-    ['neck', equipped.neck],
-    ['eyes', mood === 'sleeping' ? undefined : equipped.eyes],
-    ['hat', equipped.hat],
-  ];
+  const sa = STAGE_ART[stage];
+  const body = sa.rect;
+  const src = frogUrl(stage, mood, equipped.skin);
+  const frogImg = (clip?: string) => <image href={src} x={body.x} y={body.y} width={body.w} height={body.h} clipPath={clip ? `url(#${clip})` : undefined} />;
+  const item = (id: string | undefined) => {
+    const r = id ? itemRect(id, stage) : null;
+    return r ? <image href={itemUrl(id!)} x={r.x} y={r.y} width={r.w} height={r.h} filter={`url(#${uid}-sh)`} /> : null;
+  };
+  const neck = equipped.neck;
+  const hat = equipped.hat;
+  const eyes = mood === 'sleeping' ? undefined : equipped.eyes;
+  const [ex, ey, span] = sa.eyes;
 
   return (
     <svg
       viewBox="0 0 240 240" className={className} role="img" aria-label={title ?? 'Tu rana'}
       preserveAspectRatio={align === 'bottom' ? 'xMidYMax meet' : undefined}
     >
+      <defs>
+        <filter id={`${uid}-sh`} x="-10%" y="-10%" width="120%" height="130%">
+          <feDropShadow dx="0" dy="1.2" stdDeviation="1" floodColor="#123b22" floodOpacity="0.28" />
+        </filter>
+        {neck && <clipPath id={`${uid}-head`}><rect x="0" y="0" width="240" height={sa.neck[1] + TUCK} /></clipPath>}
+        {hat && hat !== 'hat-astronaut' && (
+          <clipPath id={`${uid}-eyes`}>
+            <circle cx={ex - span / 2} cy={ey} r={span * EYE_BUMP} />
+            <circle cx={ex + span / 2} cy={ey} r={span * EYE_BUMP} />
+          </clipPath>
+        )}
+      </defs>
       {scene && <image href={backgroundUrl(equipped.background)} width="240" height="240" preserveAspectRatio="xMidYMid slice" />}
       <g transform={scene ? ON_PAD : undefined}>
         <g key={hopKey} className={hopKey ? 'frog-hop' : undefined}>
           <g className="frog-idle">
-            <image href={frogUrl(stage, mood, equipped.skin)} x={body.x} y={body.y} width={body.w} height={body.h} />
-            {slots.map(([slot, id]) => {
-              const r = id ? itemRect(id, stage) : null;
-              return r ? <image key={slot} href={itemUrl(id!)} x={r.x} y={r.y} width={r.w} height={r.h} /> : null;
-            })}
+            {frogImg()}
+            {neck && <>{item(neck)}{frogImg(`${uid}-head`)}</>}
+            {hat && <>{item(hat)}{hat !== 'hat-astronaut' && frogImg(`${uid}-eyes`)}</>}
+            {item(eyes)}
           </g>
         </g>
       </g>

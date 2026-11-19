@@ -31,7 +31,7 @@ export const ITEM_ART: Record<string, ItemArt> = {
   'hat-beret': { ratio: 0.6321, w: 0.62, ax: 0.5, ay: 0.85 },
   'neck-bandana': { ratio: 0.6131, w: 0.8, ax: 0.5, ay: 0.18 },
   'neck-tie': { ratio: 1.1042, w: 0.52, ax: 0.5, ay: 0.1 },
-  'neck-bowtie': { ratio: 0.5005, w: 0.5, ax: 0.5, ay: 0.45 },
+  'neck-bowtie': { ratio: 0.5005, w: 0.5, ax: 0.5, ay: 0.12 },
   'neck-scarf': { ratio: 0.937, w: 0.68, ax: 0.5, ay: 0.16 },
   'neck-pearls': { ratio: 0.4819, w: 0.82, ax: 0.5, ay: 0.25 },
   'neck-medal': { ratio: 1.088, w: 0.55, ax: 0.5, ay: 0.08 },
