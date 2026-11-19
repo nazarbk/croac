@@ -80,13 +80,6 @@
   --shadow-float-v: 0 2px 6px rgb(20 46 39 / 0.06), 0 16px 40px -12px rgb(20 46 39 / 0.25);
 
   /* Escena de la charca (de día) */
-  --scene-sky-1: #e4f4ea;
-  --scene-sky-2: #cdeadf;
-  --scene-sun: #fff1a6;
-  --scene-water: #9ed6c8;
-  --scene-ripple: #c9ece2;
-  --scene-reeds: #5c9a5a;
-  --scene-pad: #5fae5f;
   color-scheme: light;
 }
 
@@ -127,13 +120,6 @@
   --shadow-float-v: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 20px 50px -12px rgb(0 0 0 / 0.7);
 
   /* Escena de la charca (de noche) */
-  --scene-sky-1: #18264a;
-  --scene-sky-2: #27406a;
-  --scene-sun: #fff4c8;
-  --scene-water: #1b4a5a;
-  --scene-ripple: #3b7287;
-  --scene-reeds: #2f5a4e;
-  --scene-pad: #3f8a55;
   color-scheme: dark;
 }
 
@@ -191,49 +177,16 @@
   background-image: var(--xp-grad);
 }
 
-/* Escena: elementos que solo se ven de noche / de día */
-.scene-night { display: none; }
-.dark .scene-night { display: inline; }
-.dark .scene-day { display: none; }
-
 /* ---------- Rana: animaciones ---------- */
 
 .frog-idle {
   animation: frog-bob 3.2s ease-in-out infinite;
-  transform-origin: 120px 220px;
+  transform-origin: 120px 228px;
 }
 .frog-hop {
   animation: frog-hop 0.7s cubic-bezier(0.3, 0.7, 0.4, 1);
-  transform-origin: 120px 220px;
+  transform-origin: 120px 228px;
 }
-.frog-blink {
-  animation: frog-blink 5.5s infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-.tail {
-  animation: tail-wiggle 1.4s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: 0% 50%;
-}
-.bubbles {
-  animation: bubbles 3s ease-in-out infinite;
-}
-.twinkle {
-  animation: twinkle 2.4s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-.rain {
-  animation: rain 0.9s linear infinite;
-}
-.zzz {
-  animation: zzz 2.6s ease-in-out infinite;
-}
-.tear {
-  animation: tear 2.4s ease-in infinite;
-}
-
 @keyframes frog-bob {
   0%, 100% { transform: translateY(0) scaleY(1); }
   50% { transform: translateY(-2px) scaleY(1.015); }
@@ -245,37 +198,6 @@
   75% { transform: translateY(0) scale(1.06, 0.92); }
   100% { transform: translateY(0) scale(1, 1); }
 }
-@keyframes frog-blink {
-  0%, 94%, 100% { transform: scaleY(1); }
-  96% { transform: scaleY(0.1); }
-}
-@keyframes tail-wiggle {
-  0%, 100% { transform: skewY(0deg); }
-  50% { transform: skewY(-8deg); }
-}
-@keyframes bubbles {
-  0% { transform: translateY(6px); opacity: 0.2; }
-  50% { opacity: 0.9; }
-  100% { transform: translateY(-8px); opacity: 0; }
-}
-@keyframes twinkle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.3; transform: scale(0.7); }
-}
-@keyframes rain {
-  from { transform: translateY(-10px); }
-  to { transform: translateY(10px); }
-}
-@keyframes zzz {
-  0%, 100% { transform: translateY(0); opacity: 0.6; }
-  50% { transform: translateY(-6px); opacity: 1; }
-}
-@keyframes tear {
-  0% { transform: translateY(0); opacity: 0; }
-  20% { opacity: 1; }
-  100% { transform: translateY(14px); opacity: 0; }
-}
-
 /* ---------- UI ---------- */
 
 @keyframes pop-in {

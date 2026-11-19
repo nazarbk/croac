@@ -20,14 +20,20 @@ const widths = { sm: 'sm:max-w-sm', md: 'sm:max-w-lg', lg: 'sm:max-w-2xl' };
 /** Diálogo accesible. En móvil se comporta como hoja inferior. */
 export function Modal({ open, onClose, title, children, footer, size = 'md', dismissable = true, className }: ModalProps) {
   const panel = useRef<HTMLDivElement>(null);
+  // onClose suele ser una función nueva en cada render: la guardamos en una ref para que
+  // escribir en un campo no vuelva a ejecutar el efecto (y no robe el foco).
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
+  const dismissableRef = useRef(dismissable);
+  useEffect(() => { dismissableRef.current = dismissable; });
 
   useEffect(() => {
     if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && dismissable) {
+      if (e.key === 'Escape' && dismissableRef.current) {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
       }
       if (e.key === 'Tab' && panel.current) {
         const f = panel.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
@@ -50,7 +56,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', dis
       document.body.style.overflow = '';
       prev?.focus?.();
     };
-  }, [open, dismissable, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

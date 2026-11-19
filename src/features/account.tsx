@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '../components/ui/Button';
 import { Field, inputClass, Segmented } from '../components/ui/controls';
 import { Icon } from '../components/ui/Icon';
 import { Modal } from '../components/ui/Modal';
 import { cn } from '../lib/cn';
-import { account, accountStore, cloudEnabled, useAccount, USERNAME_RE } from '../services/account';
+import { account, accountStore, cloudEnabled, pendingUsername, useAccount, USERNAME_RE } from '../services/account';
 import { social } from '../services/social';
 import { pullNow, resolveConflict, useSync } from '../services/sync';
 import { friendlyError } from '../services/types';
@@ -12,8 +12,9 @@ import { createStore, useStore } from '../store/createStore';
 import { ui } from '../store/uiStore';
 
 /* La ventana de acceso se puede abrir desde cualquier parte. */
-const authStore = createStore<{ open: boolean; mode: 'signin' | 'signup' }>({ open: false, mode: 'signup' });
-export const openAuth = (mode: 'signin' | 'signup' = 'signup') => authStore.set({ open: true, mode });
+type AuthMode = 'signin' | 'signup' | 'reset';
+const authStore = createStore<{ open: boolean; mode: AuthMode }>({ open: false, mode: 'signup' });
+export const openAuth = (mode: AuthMode = 'signup') => authStore.set({ open: true, mode });
 
 function timeAgo(iso: string | null) {
   if (!iso) return 'nunca';
@@ -28,7 +29,7 @@ function UsernameInput({ value, onChange }: { value: string; onChange: (v: strin
   return (
     <Field label="Nombre de usuario" hint="Lo verán tus amigos. Minúsculas, números y _ (3–20).">
       <input
-        className={inputClass} value={value} autoComplete="username" autoCapitalize="none" spellCheck={false}
+        className={inputClass} value={value} autoComplete="nickname" autoCapitalize="none" autoCorrect="off" enterKeyHint="go" spellCheck={false}
         onChange={(e) => onChange(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20))}
         placeholder="ej. nazar_rana" aria-label="Nombre de usuario"
       />
@@ -36,42 +37,86 @@ function UsernameInput({ value, onChange }: { value: string; onChange: (v: strin
   );
 }
 
-/** Entrar / crear cuenta. */
+function PasswordInput({ value, onChange, autoComplete, enterKeyHint, autoFocus }: {
+  value: string; onChange: (v: string) => void; autoComplete: string; enterKeyHint: 'next' | 'go'; autoFocus?: boolean;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        id="auth-password" type={show ? 'text' : 'password'} autoCapitalize="none" autoCorrect="off" spellCheck={false}
+        enterKeyHint={enterKeyHint} className={cn(inputClass, 'pr-12')} value={value} data-autofocus={autoFocus || undefined}
+        onChange={(e) => onChange(e.target.value)} autoComplete={autoComplete} aria-label="Contraseña"
+      />
+      <button
+        type="button" onClick={() => setShow((v) => !v)} aria-label={show ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={show}
+        className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 rounded-lg flex items-center justify-center text-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lily"
+      >
+        <Icon name={show ? 'eyeOff' : 'eye'} size={18} />
+      </button>
+    </div>
+  );
+}
+
+const NAME_ERROR = 'El nombre debe tener entre 3 y 20 caracteres: minúsculas, números o _.';
+
+/** Entrar / crear cuenta / recuperar contraseña / elegir nombre. */
 export function AuthModal() {
   const { open, mode } = useStore(authStore, (s) => s);
-  const { loading, needsUsername, session } = useAccount();
+  const { loading, needsUsername, session, recovery, notice } = useAccount();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const close = () => { authStore.set({ open: false, mode }); setError(null); setInfo(null); setPassword(''); };
-  const setMode = (m: 'signin' | 'signup') => { authStore.set({ open: true, mode: m }); setError(null); setInfo(null); };
+  const setMode = (m: AuthMode) => { authStore.set({ open: true, mode: m }); setError(null); setInfo(null); };
 
-  // Tras entrar sin perfil todavía: elegir nombre de usuario.
+  // Al volver del correo de confirmación (o abrir la app con sesión y sin perfil): elegir nombre.
+  useEffect(() => {
+    if (session && needsUsername && !recovery) {
+      setUsername((u) => u || pendingUsername());
+      authStore.set({ open: true, mode: 'signin' });
+    }
+  }, [session, needsUsername, recovery]);
+
+  // Avisos al volver de un enlace de correo.
+  useEffect(() => {
+    if (!notice) return;
+    ui.toast({ message: notice.text, tone: notice.tone === 'error' ? 'danger' : undefined, duration: 6000 });
+    account.dismissNotice();
+  }, [notice]);
+
   const choosingName = open && !!session && needsUsername;
 
   const submit = async () => {
     setError(null);
     try {
       if (choosingName) {
-        if (!USERNAME_RE.test(username)) return setError('El nombre debe tener entre 3 y 20 caracteres: minúsculas, números o _.');
+        if (!USERNAME_RE.test(username)) return setError(NAME_ERROR);
         await account.createProfile(username);
         ui.toast({ message: `¡Bienvenido a la charca, @${username}!` });
         return close();
       }
+      if (!email.includes('@')) return setError('Escribe tu correo.');
+      if (mode === 'reset') {
+        await account.recover(email);
+        setInfo('Si hay una cuenta con ese correo, te llegará un enlace para elegir una contraseña nueva. Mira también en spam.');
+        return;
+      }
+      if (password.length < 6) return setError('La contraseña tiene que tener al menos 6 caracteres.');
       if (mode === 'signup') {
-        if (!USERNAME_RE.test(username)) return setError('El nombre debe tener entre 3 y 20 caracteres: minúsculas, números o _.');
+        if (!USERNAME_RE.test(username)) return setError(NAME_ERROR);
         const ok = await account.signUp(email, password, username);
         if (!ok) {
-          setInfo('Te hemos enviado un correo para confirmar la cuenta. Ábrelo y después entra aquí con tu correo y contraseña.');
+          setInfo(`Te hemos enviado un correo a ${email}. Pulsa el enlace para activar la cuenta (mira también en spam).`);
           authStore.set({ open: true, mode: 'signin' });
           return;
         }
-        ui.toast({ message: 'Cuenta creada. Tus datos ya se sincronizan.' });
+        ui.toast({ message: `¡Cuenta creada, @${username}! Tus datos ya se sincronizan.` });
       } else {
         await account.signIn(email, password);
-        if (accountStore.get().needsUsername) return; // se queda abierta para elegir nombre
+        if (accountStore.get().needsUsername) { setUsername((u) => u || pendingUsername()); return; } // elegir nombre
         ui.toast({ message: 'Has entrado. Sincronizando tus datos…' });
       }
       close();
@@ -80,34 +125,91 @@ export function AuthModal() {
     }
   };
 
-  if (!open) return null;
+  if (!open || recovery) return null;
+
+  const title = choosingName ? 'Elige tu nombre' : mode === 'signup' ? 'Crea tu cuenta' : mode === 'reset' ? 'Recuperar contraseña' : 'Entrar';
+  const cta = choosingName ? 'Guardar nombre' : mode === 'signup' ? 'Crear cuenta' : mode === 'reset' ? 'Enviar enlace' : 'Entrar';
 
   return (
     <Modal
       open
       onClose={close}
       size="sm"
-      title={choosingName ? 'Elige tu nombre' : mode === 'signup' ? 'Crea tu cuenta' : 'Entrar'}
-      footer={<Button variant="primary" className="w-full" onClick={() => void submit()} disabled={loading}>{loading ? 'Un momento…' : choosingName ? 'Guardar nombre' : mode === 'signup' ? 'Crear cuenta' : 'Entrar'}</Button>}
+      title={title}
+      footer={<Button variant="primary" className="w-full" onClick={() => void submit()} disabled={loading}>{loading ? 'Un momento…' : cta}</Button>}
     >
-      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
-        {!choosingName && (
+      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void submit(); }} noValidate>
+        {choosingName ? (
+          <p className="text-sm text-muted leading-relaxed">Es como te verán tus amigos en la charca. No se puede cambiar después.</p>
+        ) : (
           <>
-            <p className="text-sm text-muted leading-relaxed">
-              Con una cuenta tus tareas se guardan en la nube, las tienes en el móvil y en el ordenador, y puedes añadir amigos a tu charca.
-            </p>
-            <Segmented<'signin' | 'signup'> full value={mode} onChange={setMode}
-              options={[{ value: 'signup', label: 'Crear cuenta' }, { value: 'signin', label: 'Ya tengo cuenta' }]} />
+            {mode === 'reset' ? (
+              <p className="text-sm text-muted leading-relaxed">Escribe el correo de tu cuenta y te enviaremos un enlace para elegir una contraseña nueva.</p>
+            ) : (
+              <>
+                <p className="text-sm text-muted leading-relaxed">
+                  Con una cuenta tus tareas se guardan en la nube, las tienes en el móvil y en el ordenador, y puedes añadir amigos a tu charca.
+                </p>
+                <Segmented<'signin' | 'signup'> full value={mode} onChange={setMode}
+                  options={[{ value: 'signup', label: 'Crear cuenta' }, { value: 'signin', label: 'Ya tengo cuenta' }]} />
+              </>
+            )}
             <Field label="Correo">
-              <input data-autofocus type="email" className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" placeholder="tu@correo.com" aria-label="Correo" />
+              <input
+                data-autofocus id="auth-email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint={mode === 'reset' ? 'go' : 'next'}
+                className={inputClass} value={email} onChange={(e) => setEmail(e.target.value.trim())} autoComplete="email" placeholder="tu@correo.com" aria-label="Correo"
+              />
             </Field>
-            <Field label="Contraseña" hint={mode === 'signup' ? 'Al menos 6 caracteres.' : undefined}>
-              <input type="password" className={inputClass} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} aria-label="Contraseña" />
-            </Field>
+            {mode !== 'reset' && (
+              <Field label="Contraseña" hint={mode === 'signup' ? 'Al menos 6 caracteres.' : undefined}>
+                <PasswordInput value={password} onChange={setPassword} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} enterKeyHint={mode === 'signup' ? 'next' : 'go'} />
+                {mode === 'signin' && (
+                  <button type="button" onClick={() => setMode('reset')} className="mt-2 text-sm font-semibold text-lily-strong hover:underline">
+                    ¿Has olvidado la contraseña?
+                  </button>
+                )}
+              </Field>
+            )}
           </>
         )}
         {(mode === 'signup' || choosingName) && <UsernameInput value={username} onChange={setUsername} />}
-        {info && <p className="text-sm rounded-xl bg-lily-soft text-lily-strong p-3">{info}</p>}
+        {mode === 'reset' && !choosingName && (
+          <button type="button" onClick={() => setMode('signin')} className="text-sm font-semibold text-lily-strong hover:underline">Volver a entrar</button>
+        )}
+        {info && <p role="status" className="text-sm rounded-xl bg-lily-soft text-lily-strong p-3 leading-relaxed">{info}</p>}
+        {error && <p className="text-sm rounded-xl bg-danger-soft text-danger p-3 leading-relaxed" role="alert">{error}</p>}
+        <button type="submit" hidden />
+      </form>
+    </Modal>
+  );
+}
+
+/** Tras pulsar el enlace de «recuperar contraseña»: elegir la nueva. */
+export function NewPasswordModal() {
+  const { recovery, loading } = useAccount();
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  if (!recovery) return null;
+  const submit = async () => {
+    setError(null);
+    if (password.length < 6) return setError('La contraseña tiene que tener al menos 6 caracteres.');
+    try {
+      await account.updatePassword(password);
+      ui.toast({ message: 'Contraseña cambiada. Ya has entrado.' });
+      void account.loadProfile().catch(() => {});
+    } catch (e) {
+      setError(friendlyError(e));
+    }
+  };
+  return (
+    <Modal
+      open dismissable={false} onClose={() => {}} size="sm" title="Elige una contraseña nueva"
+      footer={<Button variant="primary" className="w-full" onClick={() => void submit()} disabled={loading}>{loading ? 'Un momento…' : 'Guardar contraseña'}</Button>}
+    >
+      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
+        <Field label="Contraseña nueva" hint="Al menos 6 caracteres.">
+          <PasswordInput value={password} onChange={setPassword} autoComplete="new-password" enterKeyHint="go" autoFocus />
+        </Field>
         {error && <p className="text-sm rounded-xl bg-danger-soft text-danger p-3" role="alert">{error}</p>}
         <button type="submit" hidden />
       </form>
@@ -138,9 +240,11 @@ export function SyncConflictModal() {
 
 /** Tarjeta de Ajustes: estado de la cuenta y de la sincronización. */
 export function AccountCard() {
-  const { session, profile } = useAccount();
+  const { session, profile, loading } = useAccount();
   const sync = useSync();
   const [copied, setCopied] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   if (!cloudEnabled) {
     return (
@@ -209,8 +313,32 @@ export function AccountCard() {
             <Button size="sm" icon="refresh" onClick={() => void pullNow()}>Sincronizar ahora</Button>
             <Button size="sm" variant="ghost" icon="logOut" onClick={() => { void account.signOut(); social.clear(); }}>Cerrar sesión</Button>
           </div>
+          <button type="button" onClick={() => setConfirmDelete(true)} className="mt-4 text-[13px] text-muted hover:text-danger underline-offset-2 hover:underline">
+            Borrar mi cuenta
+          </button>
         </div>
       </div>
+      <Modal
+        open={confirmDelete} onClose={() => { setConfirmDelete(false); setDeleteError(null); }} size="sm" title="¿Borrar tu cuenta?"
+        footer={<>
+          <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Cancelar</Button>
+          <Button variant="danger" disabled={loading} onClick={async () => {
+            try {
+              await account.deleteAccount();
+              social.clear();
+              setConfirmDelete(false);
+              ui.toast({ message: 'Cuenta borrada. Tus tareas siguen en este dispositivo.' });
+            } catch (e) {
+              setDeleteError(friendlyError(e));
+            }
+          }}>Borrar cuenta</Button>
+        </>}
+      >
+        <p className="text-[15px] leading-relaxed">
+          Se borrarán tu perfil, tus amistades y la copia en la nube. Desaparecerás de la charca de tus amigos. Tus tareas seguirán en este dispositivo.
+        </p>
+        {deleteError && <p className="text-sm rounded-xl bg-danger-soft text-danger p-3 mt-3" role="alert">{deleteError}</p>}
+      </Modal>
     </section>
   );
 }

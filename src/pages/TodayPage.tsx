@@ -13,6 +13,7 @@ import { actions } from '../store/actions';
 import { useApp, useToday } from '../store/appStore';
 import { useFrogInfo, useListsById, useStreaks, useTodayGroups } from '../store/selectors';
 import { cn } from '../lib/cn';
+import { href } from '../lib/router';
 
 export function Section({ title, count, children, aside, tone }: { title: ReactNode; count?: number; children: ReactNode; aside?: ReactNode; tone?: 'danger' | 'warn' }) {
   return (
@@ -165,6 +166,9 @@ export function TodayPage() {
                   <span className="text-xs font-semibold text-lily-strong tabular-nums">+{h.xp} XP</span>
                 </div>
               ))}
+              <a href={href('historial')} className="self-start inline-flex items-center gap-1.5 h-9 px-3 -ml-1 rounded-xl text-sm font-semibold text-lily-strong hover:bg-lily-soft">
+                <Icon name="history" size={16} />Ver todo el historial
+              </a>
             </div>
           )}
         </Section>

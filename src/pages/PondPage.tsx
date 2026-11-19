@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { art } from '../components/frog/art';
 import { Frog } from '../components/frog/Frog';
 import { IconButton } from '../components/ui/Button';
 import { Icon } from '../components/ui/Icon';
@@ -13,10 +14,14 @@ import { appStore, useApp, useToday } from '../store/appStore';
 import { useUi } from '../store/uiStore';
 import { NeedsAccount } from './FriendsPage';
 
-/** Posiciones de los nenúfares (x %, y %, tamaño %). El primero es el tuyo. */
-const SLOTS: [number, number, number][] = [
-  [50, 63, 28], [20, 55, 21], [80, 55, 21], [34, 30, 18], [66, 30, 18],
-  [10, 27, 15], [90, 27, 15], [50, 14, 15], [24, 11, 12], [76, 11, 12],
+/**
+ * Nenúfares pintados en las ilustraciones de la charca: centro x %, centro y %, ancho %.
+ * [móvil (imagen cuadrada), escritorio (imagen panorámica)]. El primero es el tuyo.
+ */
+const SLOTS: [[number, number, number], [number, number, number]][] = [
+  [[50, 67, 27], [50, 70, 27]], [[19, 67, 27], [19, 70, 27]], [[81, 67, 27], [81, 70, 27]],
+  [[38.5, 46, 20], [39, 44, 16.5]], [[61, 46, 20], [61, 44, 16.5]], [[15.5, 46, 20], [17, 44, 16.5]], [[84.5, 46, 20], [83.5, 44, 16.5]],
+  [[50, 29, 15], [50, 27, 10]], [[27, 29, 15], [30, 27, 10]], [[73, 29, 15], [70, 27, 10]],
 ];
 
 interface PondFrog {
@@ -32,41 +37,20 @@ interface PondFrog {
   total: number;
 }
 
+const pondArt = (name: string) => art(`pond/${name}.webp`);
+
 function PondBackground() {
   return (
-    <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 w-full h-full" aria-hidden="true">
-      <defs>
-        <linearGradient id="pond-water" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" style={{ stopColor: 'var(--scene-sky-2)' }} />
-          <stop offset="0.18" style={{ stopColor: 'var(--scene-water)' }} />
-          <stop offset="1" style={{ stopColor: 'var(--scene-water)' }} />
-        </linearGradient>
-        <radialGradient id="pond-light" cx="0.5" cy="0.35" r="0.7">
-          <stop offset="0" stopColor="#fff" stopOpacity=".25" />
-          <stop offset="1" stopColor="#fff" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <rect width="400" height="300" fill="url(#pond-water)" />
-      <rect width="400" height="300" fill="url(#pond-light)" />
-      <g style={{ stroke: 'var(--scene-ripple)' }} strokeWidth="2.5" strokeLinecap="round" fill="none" opacity=".8">
-        <path d="M30 120 h50 M300 140 h60 M120 250 h70 M250 270 h50 M170 90 h40" />
-        <ellipse cx="330" cy="225" rx="26" ry="7" /><ellipse cx="70" cy="200" rx="18" ry="5" />
-      </g>
-      <g style={{ stroke: 'var(--scene-reeds)' }} strokeWidth="4" strokeLinecap="round" fill="none">
-        <path d="M8 300 Q4 230 14 180" /><path d="M20 300 Q22 250 30 215" /><path d="M392 300 Q398 240 386 196" /><path d="M380 300 Q376 260 370 236" />
-      </g>
-      <rect x="10" y="172" width="8" height="22" rx="4" fill="#8a5a3b" transform="rotate(8 14 183)" />
-      <rect x="382" y="190" width="8" height="22" rx="4" fill="#8a5a3b" transform="rotate(-8 386 201)" />
-    </svg>
-  );
-}
-
-function LilyPad() {
-  return (
-    <svg viewBox="0 0 120 40" className="absolute left-1/2 -translate-x-1/2 bottom-[-4%] w-[118%]" aria-hidden="true">
-      <path d="M8 20 A52 17 0 1 0 112 20 A52 17 0 0 0 76 5 L60 20 L50 4 A52 17 0 0 0 8 20 Z" style={{ fill: 'var(--scene-pad)' }} />
-      <path d="M60 20 L36 30 M60 20 L84 31 M60 20 L104 19" stroke="rgba(0,0,0,.12)" strokeWidth="1.5" />
-    </svg>
+    <>
+      <picture className="dark:hidden">
+        <source media="(min-width: 640px)" srcSet={pondArt('day-wide')} />
+        <img src={pondArt('day-square')} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      </picture>
+      <picture className="hidden dark:block">
+        <source media="(min-width: 640px)" srcSet={pondArt('night-wide')} />
+        <img src={pondArt('night-square')} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      </picture>
+    </>
   );
 }
 
@@ -116,30 +100,28 @@ export function PondPage() {
         {session && profile && <IconButton icon="refresh" label="Actualizar" onClick={() => void social.refresh()} className={cn(loading && 'animate-spin')} />}
       </header>
 
-      <div className={cn('relative isolate mt-6 rounded-[1.75rem] overflow-hidden border border-line shadow-card sm:aspect-[16/10]', visible.length <= 3 ? 'aspect-[5/4]' : 'aspect-square')}>
+      <div className="relative isolate mt-6 rounded-[1.75rem] overflow-hidden border border-line shadow-card aspect-square sm:aspect-[1586/992]">
         <PondBackground />
         {visible.map((f, i) => {
-          const [x, y, size] = SLOTS[i];
+          const [[x, y, w], [xw, yw, ww]] = SLOTS[i];
+          const vars = { '--x': `${x}%`, '--y': `${y + 1}%`, '--w': `${w * 0.92}%`, '--xw': `${xw}%`, '--yw': `${yw + 1}%`, '--ww': `${ww * 0.92}%`, zIndex: Math.round(y) } as CSSProperties;
           return (
             <button
               key={f.id}
               type="button"
               onClick={() => setSelected(f)}
-              className="absolute -translate-x-1/2 -translate-y-1/2 group focus-visible:outline-none"
-              style={{ left: `${x}%`, top: `${y}%`, width: `${size}%`, zIndex: Math.round(y) }}
+              className="absolute -translate-x-1/2 -translate-y-full group focus-visible:outline-none left-[var(--x)] top-[var(--y)] w-[var(--w)] sm:left-[var(--xw)] sm:top-[var(--yw)] sm:w-[var(--ww)]"
+              style={vars}
               aria-label={`${f.name}${f.me ? ' (tú)' : ` de @${f.username}`}, nivel ${f.level}`}
             >
-              <div className="relative aspect-square">
-                <LilyPad />
-                <Frog level={f.level} mood={f.mood} equipped={{ ...f.equipped, background: undefined }} hopKey={f.me ? hop : 0} className="relative w-full h-full" />
+              <span className="relative block aspect-square transition-transform group-hover:-translate-y-1">
+                <Frog level={f.level} mood={f.mood} equipped={{ ...f.equipped, background: undefined }} hopKey={f.me ? hop : 0} className="w-full h-full drop-shadow-[0_6px_6px_rgb(0_0_0/0.18)]" />
                 {f.id === leaderId && (
-                  <span className="absolute top-[8%] -right-[2%] w-7 h-7 rounded-full bg-coin text-[#3d2a00] flex items-center justify-center shadow-card ring-2 ring-raised" title="Líder de la semana">
-                    <Icon name="trophy" size={15} />
-                  </span>
+                  <img src={art('ui/trophy.webp')} alt="" title="Líder de la semana" className="absolute -top-[6%] -right-[8%] w-[34%] min-w-6 drop-shadow" />
                 )}
-              </div>
+              </span>
               <span className={cn(
-                'mt-1 inline-block max-w-full truncate rounded-full px-2.5 py-0.5 text-[11px] sm:text-xs font-semibold shadow-card',
+                'absolute left-1/2 -translate-x-1/2 top-[92%] max-w-[160%] truncate rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-semibold shadow-card whitespace-nowrap',
                 f.me ? 'bg-lily text-on-lily' : 'bg-raised/90 text-ink',
                 'group-focus-visible:ring-2 group-focus-visible:ring-lily',
               )}>

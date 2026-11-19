@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { addDays, formatLong, formatRelative, weekday, type DateStr } from '../../domain/dates';
 import { completionDates, taskStreak } from '../../domain/engine';
 import { DIFFICULTIES, PRIORITIES, rewardFor } from '../../domain/progression';
@@ -46,6 +46,14 @@ export function TaskEditor() {
   const task = useApp((s) => s.tasks.find((t) => t.id === editor.taskId));
   const [draft, setDraft] = useState<Draft | null>(null);
   const [newSub, setNewSub] = useState('');
+  const subInput = useRef<HTMLInputElement>(null);
+  const addSub = () => {
+    const title = newSub.trim();
+    if (!title) return;
+    setDraft((d) => (d ? { ...d, subtasks: [...d.subtasks, emptySubtask(title)] } : d));
+    setNewSub('');
+    subInput.current?.focus();
+  };
 
   useEffect(() => {
     if (!editor.open) { setDraft(null); return; }
@@ -125,7 +133,15 @@ export function TaskEditor() {
         </>
       }
     >
-      <form onSubmit={(e) => { e.preventDefault(); save(); }} className="space-y-5">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          // En móvil, «Intro» en el campo de subtarea envía el formulario: añadir la subtarea en vez de guardar.
+          if (document.activeElement === subInput.current) return addSub();
+          save();
+        }}
+        className="space-y-5"
+      >
         <div>
           <textarea
             data-autofocus
@@ -152,6 +168,7 @@ export function TaskEditor() {
 
         {!isNew && (
           <Segmented<TaskStatus>
+            full
             value={draft.status}
             onChange={(v) => set('status', v)}
             options={[
@@ -193,20 +210,24 @@ export function TaskEditor() {
         </div>
 
         <Field label="Prioridad">
-          <Segmented<Priority>
-            value={draft.priority}
-            onChange={(v) => set('priority', v)}
-            options={([1, 2, 3, 4] as Priority[]).map((p) => ({
-              value: p,
-              title: PRIORITIES[p].label,
-              label: <span className="flex items-center gap-1"><Icon name="flag" size={14} className={priorityColor[p]} />{PRIORITIES[p].label}</span>,
-            }))}
-            className="flex-wrap"
-          />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 p-1 rounded-xl bg-surface-2 border border-line" role="radiogroup" aria-label="Prioridad">
+            {([1, 2, 3, 4] as Priority[]).map((p) => (
+              <button
+                key={p} type="button" role="radio" aria-checked={draft.priority === p} onClick={() => set('priority', p)}
+                className={cn(
+                  'h-9 px-2 rounded-lg text-sm font-medium inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors',
+                  draft.priority === p ? 'bg-raised text-ink shadow-card' : 'text-muted hover:text-ink',
+                )}
+              >
+                <Icon name="flag" size={14} className={cn('shrink-0', priorityColor[p])} />{p === 4 ? 'Sin prioridad' : PRIORITIES[p].label}
+              </button>
+            ))}
+          </div>
         </Field>
 
         <Field label="Dificultad" hint={`Recompensa: +${reward.xp} XP y +${reward.coins} monedas${streak > 1 ? ` (incluye bonus por racha de ${streak})` : ''}.`}>
           <Segmented<Difficulty>
+            full
             value={draft.difficulty}
             onChange={(v) => set('difficulty', v)}
             options={(Object.keys(DIFFICULTIES) as Difficulty[]).map((d) => ({ value: d, label: DIFFICULTIES[d].label, title: DIFFICULTIES[d].hint }))}
@@ -232,20 +253,26 @@ export function TaskEditor() {
               </div>
             ))}
             <div className="flex items-center gap-2">
-              <Icon name="plus" size={16} className="text-muted" />
+              <Icon name="plus" size={16} className="text-muted shrink-0" />
               <input
+                ref={subInput}
                 value={newSub}
                 onChange={(e) => setNewSub(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
+                  // keyCode 13: algunos teclados de Android no envían key === 'Enter'.
+                  if (e.key === 'Enter' || e.keyCode === 13) {
                     e.preventDefault();
-                    if (newSub.trim()) { set('subtasks', [...draft.subtasks, emptySubtask(newSub.trim())]); setNewSub(''); }
+                    addSub();
                   }
                 }}
-                placeholder="Añadir subtarea y pulsar Enter"
-                className="flex-1 bg-transparent outline-none py-1.5 text-base sm:text-[15px] placeholder:text-muted/70"
+                placeholder="Añadir subtarea"
+                enterKeyHint="enter"
+                className="flex-1 min-w-0 bg-transparent outline-none h-10 text-base sm:text-[15px] placeholder:text-muted/70"
                 aria-label="Nueva subtarea"
               />
+              {newSub.trim() && (
+                <Button type="button" size="sm" variant="secondary" onMouseDown={(e) => e.preventDefault()} onClick={addSub} className="shrink-0">Añadir</Button>
+              )}
             </div>
           </div>
         </Field>

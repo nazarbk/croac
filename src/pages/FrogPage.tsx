@@ -60,16 +60,16 @@ export function FrogPage() {
 
       <section className="mt-8">
         <h2 className="font-display text-xl font-bold">Evolución</h2>
-        <ol className="mt-3 grid grid-cols-5 gap-2">
+        <ol className="mt-3 grid grid-cols-5 gap-1.5 sm:gap-2">
           {STAGES.map((s) => {
             const reached = info.level >= s.minLevel;
             const current = info.stage.id === s.id;
             return (
-              <li key={s.id} className={cn('rounded-2xl border p-2 text-center', current ? 'border-lily bg-lily-soft' : 'border-line bg-surface')}>
+              <li key={s.id} className={cn('min-w-0 rounded-2xl border p-1.5 sm:p-2 text-center', current ? 'border-lily bg-lily-soft' : 'border-line bg-surface')}>
                 <div className={cn('aspect-square', !reached && 'grayscale opacity-35')}>
                   <Frog level={s.minLevel} stageOverride={s.id} mood={reached ? 'happy' : 'sleeping'} equipped={{ skin: frog.equipped.skin }} className="w-full h-full" />
                 </div>
-                <div className="text-[12px] sm:text-[13px] font-semibold leading-tight mt-1">{s.name}</div>
+                <div className="text-[11px] sm:text-[13px] font-semibold leading-tight mt-1 break-words hyphens-auto">{s.name}</div>
                 <div className="text-[11px] text-muted">Nv. {s.minLevel}</div>
               </li>
             );

@@ -1,40 +1,83 @@
-# Activar cuentas, sincronización y amigos (Supabase)
+# Activar cuentas, amigos y la charca (Supabase)
 
-Sin esto Croac funciona igual, pero los datos viven solo en cada dispositivo y la charca solo muestra tu rana. Con Supabase (plan gratuito) tienes:
+Sin esto Croac funciona, pero cada dispositivo guarda sus propios datos y no se pueden añadir amigos. Con Supabase (gratis) tienes:
 
-- Inicio de sesión con correo y contraseña.
-- **Sincronización** entre móvil y ordenador (la última modificación gana).
+- Cuenta con correo y contraseña (con «¿Has olvidado la contraseña?»).
+- **Sincronización** entre el móvil y el ordenador.
 - **Amigos** por código o enlace de invitación, **charca compartida** y **ranking semanal**.
 
-## 1. Crear el proyecto (5 minutos)
+Tardas unos 10 minutos. Hazlo una sola vez.
 
-1. Entra en [supabase.com](https://supabase.com) → *New project*. Región recomendada: **West EU (Ireland)** o **Central EU (Frankfurt)**.
-2. Cuando esté listo, ve a **SQL Editor → New query**, pega el contenido de [`supabase/schema.sql`](../supabase/schema.sql) y pulsa **Run**. Se puede volver a ejecutar sin problema.
-3. **Authentication → Sign In / Providers → Email**:
-   - Para empezar rápido, desactiva **Confirm email** (las cuentas se crean y entran al momento).
-   - Si lo dejas activado, la app avisa de que hay que confirmar el correo y luego entrar.
-4. **Authentication → URL Configuration → Site URL**: pon la URL de Vercel (p. ej. `https://croac.vercel.app`).
-5. **Project Settings → API**: copia **Project URL** y la clave **anon public**.
+---
 
-## 2. Configurar la app
+## Paso 1 · Crear el proyecto en Supabase
 
-En local, crea un archivo `.env` (no se sube a Git) a partir de `.env.example`:
+1. Entra en [supabase.com](https://supabase.com) con tu cuenta de GitHub → **New project**.
+   - *Name*: `croac` · *Region*: **Europe (Frankfurt o Ireland)** · apunta la contraseña de la base de datos (no la necesitarás en la app).
+2. Espera a que termine de crearse (1-2 minutos).
 
-```bash
-VITE_SUPABASE_URL=https://xxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
-```
+## Paso 2 · Crear las tablas
 
-En **Vercel → Project → Settings → Environment Variables** añade las mismas dos variables y vuelve a desplegar (*Deployments → Redeploy*).
+1. Menú izquierdo → **SQL Editor** → **New query**.
+2. Copia **todo** el contenido de [`supabase/schema.sql`](../supabase/schema.sql), pégalo y pulsa **Run**.
+3. Debe decir *Success. No rows returned*. Si lo vuelves a ejecutar más adelante (por ejemplo, tras una actualización de la app), no pasa nada.
 
-La clave *anon* es pública por diseño: la seguridad la ponen las políticas RLS del esquema (cada usuario solo puede leer y escribir lo suyo y ver el perfil de sus amigos). **Nunca** pongas la clave `service_role` en la app.
+## Paso 3 · Configurar el inicio de sesión
 
-## 3. Probar
+Menú izquierdo → **Authentication**:
 
-1. Abre la app → **Ajustes → Tu cuenta → Crear cuenta**.
-2. La primera vez en un dispositivo con datos, te pregunta si quieres conservar los de la cuenta o subir los del dispositivo.
-3. En otro dispositivo, entra con la misma cuenta: verás las mismas tareas.
-4. **Amigos → Invitar** comparte un enlace `…/#/amigos?codigo=XXXXXXXX`. Al abrirlo, tu amigo crea su cuenta y pulsa *Añadir*.
+1. **Sign In / Providers → Email**
+   - **Confirm email: desactívalo** para la prueba con amigos. Así la cuenta se crea y entra al momento.
+     > Con «Confirm email» activado, Supabase solo puede enviar unos pocos correos por hora con su servidor gratuito: si varios amigos se registran a la vez, algunos no recibirán el correo. Para más adelante, configura un SMTP propio (Resend, Brevo…) en *Authentication → Emails → SMTP Settings*.
+   - Guarda.
+2. **URL Configuration**
+   - **Site URL**: la dirección de tu app en Vercel, por ejemplo `https://croac.vercel.app`.
+   - **Redirect URLs** → *Add URL*: `https://croac.vercel.app/**` (y `http://localhost:5173/**` si pruebas en local).
+   - Sirve para que los enlaces de los correos (recuperar contraseña o confirmar cuenta) vuelvan a tu app.
+
+## Paso 4 · Copiar las claves
+
+**Project Settings → API Keys** (o el botón **Connect** de arriba):
+
+- **Project URL**: `https://xxxxxxxx.supabase.co`
+- **Publishable key** (`sb_publishable_…`). Si tu proyecto muestra las claves antiguas, usa la **anon public** (`eyJ…`).
+
+Las dos son públicas por diseño: la seguridad la ponen las reglas (RLS) del paso 2. **Nunca** uses la *secret key* / *service_role* en la app.
+
+## Paso 5 · Ponerlas en Vercel
+
+1. [vercel.com](https://vercel.com) → tu proyecto **croac** → **Settings → Environment Variables**.
+2. Añade (marcando *Production*, *Preview* y *Development*):
+
+   | Nombre | Valor |
+   |---|---|
+   | `VITE_SUPABASE_URL` | la Project URL |
+   | `VITE_SUPABASE_ANON_KEY` | la publishable (o anon) key |
+
+3. **Deployments** → el último → **⋯ → Redeploy**. Las variables solo se aplican en un despliegue nuevo.
+
+Para probar en local, crea un archivo `.env` (no se sube a Git) copiando `.env.example` con los mismos valores.
+
+## Paso 6 · Comprobar que funciona
+
+1. Abre la app → **Ajustes**. La tarjeta debe decir **Tu cuenta** con los botones *Crear cuenta* y *Entrar*. Si dice «Esta instalación no está conectada a un servidor», las variables no han llegado: revisa los nombres y vuelve a desplegar.
+2. **Crear cuenta** con tu correo, una contraseña y tu nombre de usuario.
+3. **Amigos → Invitar**: manda el enlace por WhatsApp. Cuando tu amigo lo abra y cree su cuenta, la solicitud se envía sola; acéptala en **Amigos → Solicitudes**.
+4. **La charca**: verás las ranas de los dos y el ranking de la semana.
+
+### Si algo falla
+
+| Mensaje en la app | Qué hacer |
+|---|---|
+| «Falta preparar la base de datos» | No se ejecutó `schema.sql` entero (paso 2). |
+| «La app no está bien conectada al servidor» | Revisa `VITE_SUPABASE_URL` (sin `/` final) y la clave, y vuelve a desplegar. |
+| «Confirma tu correo…» al entrar | «Confirm email» sigue activado: confirma desde el correo o desactívalo (paso 3). |
+| «Demasiados intentos seguidos» | Límite de correos o de intentos de Supabase. Espera unos minutos. |
+| El enlace del correo abre `localhost` | Falta la *Site URL* (paso 3.2). |
+
+> El plan gratuito de Supabase **pausa el proyecto si pasa 7 días sin uso**. Si un día la app no conecta, entra en Supabase y pulsa *Restore project*.
+
+---
 
 ## Cómo funciona por dentro
 
@@ -44,6 +87,12 @@ La clave *anon* es pública por diseño: la seguridad la ponen las políticas RL
 | `friendships` | Solicitudes y amistades (`pending` → `accepted`) |
 | `user_state` | Copia completa del estado de la app de cada usuario (JSON) para sincronizar |
 
-- La función `send_friend_request(code)` busca el código sin exponer el resto de perfiles y, si la otra persona ya te había enviado solicitud, la acepta.
-- El cliente usa la API REST de Supabase directamente (`src/services/backend.ts`), sin SDK. Cambiar de proveedor = escribir otra implementación de la interfaz `Backend` (`src/services/types.ts`).
-- El ranking usa las estadísticas que publica cada cliente. Es suficiente entre amigos, pero se puede falsear editando el navegador; ver la auditoría para la versión a prueba de trampas.
+| Función | Para qué |
+|---|---|
+| `send_friend_request(code)` | Envía la solicitud por código sin exponer otros perfiles; si la otra persona ya te la había enviado, la acepta. Máximo 20 por hora. |
+| `username_available(name)` | Comprueba el nombre antes de crear la cuenta. |
+| `delete_my_account()` | «Borrar mi cuenta» en Ajustes: borra perfil, amistades, copia en la nube y el usuario. |
+
+- Cada usuario solo puede leer y escribir lo suyo y ver el perfil de sus amigos (y de quien le ha enviado solicitud).
+- La app usa la API REST de Supabase directamente (`src/services/backend.ts`), sin SDK. Cambiar de proveedor = otra implementación de la interfaz `Backend` (`src/services/types.ts`).
+- El ranking usa las estadísticas que publica cada dispositivo. Entre amigos es suficiente, pero se puede falsear; ver `docs/AUDITORIA.md`.

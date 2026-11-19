@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { art } from '../components/frog/art';
 import { addDays, diffDays } from '../domain/dates';
 import type { Task } from '../domain/types';
 import { QuickAdd } from '../components/tasks/QuickAdd';
@@ -130,7 +131,7 @@ export function TasksPage() {
       </div>
 
       {groups.length === 0 ? (
-        <EmptyState title={query ? 'Sin resultados' : filter === 'completadas' ? 'Aún no hay tareas completadas' : filter === 'en-proceso' ? 'Nada en proceso' : 'No hay tareas aquí'}>
+        <EmptyState art={<img src={art('ui/empty-tasks.webp')} alt="" className="w-28 h-28 object-contain" />} title={query ? 'Sin resultados' : filter === 'completadas' ? 'Aún no hay tareas completadas' : filter === 'en-proceso' ? 'Nada en proceso' : 'No hay tareas aquí'}>
           {query ? `No hay tareas que contengan "${query}".` : filter === 'en-proceso' ? 'Marca una tarea "en proceso" desde su menú para verla aquí.' : 'Escribe arriba para añadir la primera.'}
         </EmptyState>
       ) : (

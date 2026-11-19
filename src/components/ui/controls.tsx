@@ -59,7 +59,7 @@ export function Segmented<T extends string | number>({ value, onChange, options,
             className={cn(
               'rounded-lg font-medium transition-colors whitespace-nowrap inline-flex items-center justify-center gap-1.5',
               size === 'sm' ? 'px-3 h-8 text-[13px]' : 'px-3.5 h-9 text-sm',
-              full && 'flex-1',
+              full && 'flex-1 min-w-0 px-1.5 sm:px-3',
               o.value === value ? 'bg-raised text-ink shadow-card' : 'text-muted hover:text-ink',
             )}
           >

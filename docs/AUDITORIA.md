@@ -1,8 +1,23 @@
-# Croac · auditoría técnica (v0.3.0)
+# Croac · auditoría técnica (v1.0.0)
 
 > Revisión interna de calidad, seguridad, rendimiento, accesibilidad y preparación para escalar. Prioridad: **Alta** = puede perder datos, romper la app o exponer información; **Media** = afecta a la experiencia o al crecimiento; **Baja** = mejora.
 
-## 1. Corregido en esta versión
+## 0. Novedades de la v1.0
+
+| Área | Cambio |
+|---|---|
+| Cuentas | Vuelta desde los enlaces de correo (confirmar cuenta, recuperar contraseña): la app lee los tokens del enlace, entra y pide elegir nombre o contraseña nueva. Errores de enlace caducado traducidos |
+| Cuentas | El nombre de usuario se comprueba **antes** de crear la cuenta (`username_available`); si aun así falla, se pide otro nombre sin volver a registrarse |
+| Cuentas | «Borrar mi cuenta» en Ajustes (`delete_my_account`) |
+| Amigos | Las invitaciones por enlace se guardan y se envían solas en cuanto el invitado tiene cuenta |
+| Seguridad | Máximo 20 solicitudes de amistad por hora (contra probar códigos al azar); permisos explícitos de la API en `schema.sql` |
+| Errores | Mensajes claros si falta el esquema, la URL o la clave están mal, hay límite de correos o el correo no es válido |
+| Móvil | Añadir varias subtareas desde «Más opciones» (los teclados de Android enviaban el formulario con «Intro»); la entrada rápida pasa lo escrito al editor completo |
+| Móvil | Controles del editor a todo el ancho, prioridad en rejilla 2×2, etiquetas de evolución que no se cortan a 360 px |
+| Rendimiento | Ilustraciones en WebP (~45 KB por rana) cargadas bajo demanda; pantallas de arranque de 1 MB a ~130 KB |
+| Compartir | Imagen de vista previa (`og.jpg`) con URL absoluta para WhatsApp |
+
+## 1. Corregido en la v0.3
 
 | Área | Problema | Solución |
 |---|---|---|
@@ -18,14 +33,14 @@
 
 | # | Prioridad | Área | Hallazgo | Recomendación |
 |---|---|---|---|---|
-| P1 | Alta | Datos | En iOS, la PWA instalada y Safari tienen almacenamientos separados; sin cuenta, el usuario puede "perder" sus tareas al instalar | Mostrar aviso en la tarjeta de instalación de iOS y ofrecer crear cuenta o exportar antes |
+| P1 | Media | Datos | En iOS, la PWA instalada y Safari tienen almacenamientos separados; sin cuenta, el usuario puede "perder" sus tareas al instalar | **Mitigado**: aviso en las instrucciones de iOS para crear cuenta antes. Falta ofrecer exportar desde ahí |
 | P2 | Alta | Competición | Las estadísticas del ranking (`week_xp`, `week_tasks`, `streak`) las publica el cliente: se pueden falsear con la consola | Mover recompensas a eventos en servidor (tabla `events` + función que recalcula), o al menos validar límites (p. ej. máximo XP/día) en una función `security definer` |
 | P3 | Alta | Sincronización | "Gana el último que guarda": dos dispositivos editando sin conexión pierden cambios del primero | Fusionar por entidad: `updatedAt` por tarea, historial como unión por `id`. A medio plazo, tablas normalizadas (`tasks`, `history`) en lugar de un JSON único |
-| P4 | Alta | Legal | Falta política de privacidad y opción de borrar cuenta (obligatorio por RGPD y por las tiendas de apps) | Página de privacidad + botón «Borrar mi cuenta» (función RPC que borre perfil, amistades y estado; `auth.admin.deleteUser` desde una Edge Function) |
+| P4 | Alta (antes de abrirlo al público) | Legal | Falta política de privacidad (RGPD) | **Borrar cuenta: hecho.** Falta una página de privacidad antes de abrir la app a desconocidos |
 | P5 | Media | Rendimiento | El historial crece sin límite; con años de uso `localStorage` (≈5 MB) puede llenarse | Compactar el historial antiguo en resúmenes diarios a partir de 1 año o mover a IndexedDB |
 | P6 | Media | Rendimiento | El cálculo de rachas recorre tareas × historial | Índice `taskId → fechas completadas` memorizado en `selectors.ts` |
 | P7 | Media | Producto | Los recordatorios solo funcionan con la app abierta | Web Push (VAPID) desde una Edge Function programada, o envoltorio nativo (Capacitor) con notificaciones locales |
-| P8 | Media | Seguridad | El código de amigo (8 caracteres hex) se puede adivinar por fuerza bruta y no hay límite de solicitudes | Limitar `send_friend_request` (p. ej. 20/hora por usuario) y permitir bloquear usuarios |
+| P8 | Baja | Seguridad | El código de amigo (8 caracteres hex) se podía probar por fuerza bruta | **Hecho**: 20 solicitudes/hora. Pendiente: bloquear usuarios |
 | P9 | Media | Competición | Las penalizaciones y el modo vacaciones no afectan al ranking, pero restan XP total: el nivel de la charca puede bajar | Decidir regla: el ranking solo cuenta XP ganada (actual) — documentarlo en la UI |
 | P10 | Media | Accesibilidad | Arrastrar tiene alternativa de teclado, pero faltan anuncios `aria-live` al reordenar y algunos contrastes de texto secundario en modo oscuro rondan 4.3:1 | Añadir región `aria-live` y subir `--color-muted` oscuro un punto |
 | P11 | Media | Calidad | Solo hay tests de dominio | Tests de componentes (Testing Library) para editor y revisión diaria; E2E con Playwright de los flujos críticos (crear, completar, deshacer, sincronizar) |

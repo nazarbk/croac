@@ -5,7 +5,7 @@ import type { AppState } from '../domain/types';
 import { appStore, getCtx } from '../store/appStore';
 import { createStore, useStore } from '../store/createStore';
 import { backend } from './backend';
-import { ApiError, type Profile, type ProfileStats, type Session } from './types';
+import { ApiError, friendlyError, type Profile, type ProfileStats, type Session } from './types';
 
 const SESSION_KEY = 'croac:session';
 
@@ -15,6 +15,10 @@ interface AccountState {
   /** Hay sesión pero falta elegir nombre de usuario. */
   needsUsername: boolean;
   loading: boolean;
+  /** Se ha entrado desde el enlace de «recuperar contraseña»: hay que elegir una nueva. */
+  recovery: boolean;
+  /** Mensaje tras volver de un enlace de correo (confirmación o error). */
+  notice: { tone: 'ok' | 'error'; text: string } | null;
 }
 
 function loadSession(): Session | null {
@@ -40,6 +44,8 @@ export const accountStore = createStore<AccountState>({
   profile: null,
   needsUsername: false,
   loading: false,
+  recovery: false,
+  notice: null,
 });
 
 export const useAccount = () => useStore(accountStore, (s) => s);
@@ -86,6 +92,44 @@ function renew(s: Session): Promise<Session> {
     });
   return renewing;
 }
+
+/* ---------- Enlaces de los correos (confirmar cuenta, recuperar contraseña) ---------- */
+
+/** Dirección a la que vuelven los enlaces de los correos: esta misma app. */
+export const appUrl = () => `${location.origin}${location.pathname}`;
+
+/**
+ * Supabase devuelve al usuario a la app con los tokens en el hash
+ * (#access_token=…&refresh_token=…&type=signup|recovery) o con un error
+ * (#error=…&error_code=otp_expired). Se procesa antes de pintar nada.
+ */
+function consumeAuthRedirect() {
+  if (typeof location === 'undefined' || !backend.enabled) return;
+  const raw = location.hash.replace(/^#\/?/, '');
+  const query = location.search.replace(/^\?/, '');
+  const hasTokens = raw.includes('access_token=');
+  const hasError = raw.includes('error=') || query.includes('error=');
+  if (!hasTokens && !hasError) return;
+  const p = new URLSearchParams(hasTokens || raw.includes('error=') ? raw : query);
+  history.replaceState(null, '', `${location.pathname}#/hoy`);
+  if (hasTokens) {
+    const session = backend.sessionFromTokens(p.get('access_token') ?? '', p.get('refresh_token') ?? '', Number(p.get('expires_in')) || undefined);
+    if (!session) return;
+    saveSession(session);
+    const type = p.get('type');
+    accountStore.set((s) => ({
+      ...s,
+      session,
+      recovery: type === 'recovery',
+      notice: type === 'recovery' ? null : { tone: 'ok', text: '¡Correo confirmado! Ya tienes tu cuenta.' },
+    }));
+  } else {
+    const code = p.get('error_code') ?? '';
+    const text = code === 'otp_expired' ? friendlyError(new ApiError('link_expired', '')) : p.get('error_description')?.replace(/\+/g, ' ') || 'No se ha podido completar el enlace.';
+    accountStore.set((s) => ({ ...s, notice: { tone: 'error', text } }));
+  }
+}
+consumeAuthRedirect();
 
 /* ---------- Estadísticas públicas de la rana ---------- */
 
@@ -142,18 +186,67 @@ export const account = {
   async signUp(email: string, password: string, username: string): Promise<boolean> {
     set({ loading: true });
     try {
-      const session = await backend.signUp(email.trim(), password);
+      // Comprobar el nombre antes de crear la cuenta (si el servidor tiene la función).
+      try {
+        if (!(await backend.usernameAvailable(username))) throw new ApiError('username_taken', 'Nombre ocupado');
+      } catch (e) {
+        if (e instanceof ApiError && e.code === 'username_taken') throw e;
+      }
+      rememberUsername(username);
+      const session = await backend.signUp(email.trim(), password, appUrl());
       if (!session) return false;
       setSession(session);
-      await account.createProfile(username);
+      try {
+        await account.createProfile(username);
+      } catch (e) {
+        // La cuenta ya existe: que elija otro nombre en lugar de volver a registrarse.
+        set({ needsUsername: true });
+        throw e;
+      }
       return true;
     } finally {
       set({ loading: false });
     }
   },
 
+  async recover(email: string) {
+    set({ loading: true });
+    try {
+      await backend.recover(email.trim(), appUrl());
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  async updatePassword(password: string) {
+    set({ loading: true });
+    try {
+      await withSession((s) => backend.updatePassword(s, password));
+      set({ recovery: false });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  /** Borra la cuenta, el perfil, las amistades y los datos en la nube. Lo local se queda. */
+  async deleteAccount() {
+    set({ loading: true });
+    try {
+      await withSession((s) => backend.deleteAccount(s));
+      setSession(null);
+      set({ profile: null, needsUsername: false });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  dismissNotice() {
+    set({ notice: null });
+  },
+
   async createProfile(username: string) {
     const p = await withSession((s) => backend.createProfile(s, username.trim().toLowerCase(), statsFrom(appStore.get())));
+    forgetUsername();
     set({ profile: p, needsUsername: false });
   },
 
@@ -178,3 +271,15 @@ export const account = {
 };
 
 export const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+
+/* El nombre elegido al registrarse se recuerda por si hay que confirmar el correo antes. */
+const PENDING_NAME = 'croac:pending-username';
+function rememberUsername(name: string) {
+  try { localStorage.setItem(PENDING_NAME, name); } catch { /* nada */ }
+}
+function forgetUsername() {
+  try { localStorage.removeItem(PENDING_NAME); } catch { /* nada */ }
+}
+export function pendingUsername(): string {
+  try { return localStorage.getItem(PENDING_NAME) ?? ''; } catch { return ''; }
+}

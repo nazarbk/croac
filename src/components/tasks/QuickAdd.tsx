@@ -47,6 +47,18 @@ export const QuickAdd = forwardRef<HTMLInputElement, QuickAddProps>(function Qui
     onAdded?.();
   };
 
+  /** Abre el editor completo con lo que ya se haya escrito. */
+  const openMore = () => {
+    const p = parsed;
+    onMore?.();
+    ui.openEditor(null, {
+      date: p?.date ?? (p?.recurrence ? null : defaultDate ?? null),
+      listId,
+      template: p ? { title: p.title, time: p.time, recurrence: p.recurrence ?? undefined, priority: p.priority ?? undefined, tags: p.tags } : undefined,
+    });
+    setText('');
+  };
+
   const chips = parsed
     ? [
         parsed.recurrence && { kind: 'recurrence' as const, text: describeRecurrence(parsed.recurrence), icon: 'repeat' as const },
@@ -78,13 +90,21 @@ export const QuickAdd = forwardRef<HTMLInputElement, QuickAddProps>(function Qui
           enterKeyHint="done"
         />
         {text.trim() ? (
-          <button type="submit" className="shrink-0 h-9 px-4 rounded-xl bg-lily bg-primary-grad text-on-lily font-semibold text-sm hover:brightness-105">
-            Añadir
-          </button>
+          <>
+            <button
+              type="button" onMouseDown={(e) => e.preventDefault()} onClick={openMore} aria-label="Abrir con más opciones" title="Más opciones: subtareas, notas, dificultad…"
+              className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-muted hover:text-ink hover:bg-surface-2"
+            >
+              <Icon name="more" size={18} />
+            </button>
+            <button type="submit" className="shrink-0 h-9 px-4 rounded-xl bg-lily bg-primary-grad text-on-lily font-semibold text-sm hover:brightness-105">
+              Añadir
+            </button>
+          </>
         ) : (
           <button
             type="button"
-            onClick={() => { onMore?.(); ui.openEditor(null, { date: defaultDate ?? null, listId }); }}
+            onClick={openMore}
             className="shrink-0 h-9 px-3 rounded-xl text-muted hover:text-ink hover:bg-surface-2 text-sm font-medium"
           >
             Más opciones

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button, IconButton } from '../components/ui/Button';
+import { cloudEnabled } from '../services/account';
 import { Icon } from '../components/ui/Icon';
 import { Modal } from '../components/ui/Modal';
 import { createStore, useStore } from '../store/createStore';
@@ -65,6 +66,11 @@ function IosSteps() {
         <span className="w-8 h-8 rounded-xl bg-lily-soft text-lily-strong flex items-center justify-center shrink-0"><Icon name="check" size={16} /></span>
         <span className="pt-1">Pulsa <strong>Añadir</strong>. La rana aparecerá en tu pantalla de inicio y se abrirá a pantalla completa.</span>
       </li>
+      {cloudEnabled && (
+        <li className="text-[13px] text-muted leading-relaxed rounded-xl bg-surface-2 p-3">
+          En iPhone, la app instalada no comparte datos con Safari. Si ya tienes tareas aquí, <strong>crea una cuenta antes</strong> y entra con ella en la app instalada para recuperarlas.
+        </li>
+      )}
     </ol>
   );
 }

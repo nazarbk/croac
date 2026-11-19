@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { art } from '../components/frog/art';
 import { Frog } from '../components/frog/Frog';
 import { Button, IconButton } from '../components/ui/Button';
 import { EmptyState, inputClass } from '../components/ui/controls';
-import { Icon } from '../components/ui/Icon';
 import { Modal } from '../components/ui/Modal';
 import { stageForLevel } from '../domain/progression';
 import { openAuth } from '../features/account';
@@ -14,6 +14,17 @@ import { friendlyError, type Profile } from '../services/types';
 import { useToday } from '../store/appStore';
 import { ui } from '../store/uiStore';
 
+const INVITE_KEY = 'croac:invite';
+function saveInvite(code: string | null) {
+  try {
+    if (code) localStorage.setItem(INVITE_KEY, code.toUpperCase());
+    else localStorage.removeItem(INVITE_KEY);
+  } catch { /* nada */ }
+}
+function loadInvite(): string | null {
+  try { return localStorage.getItem(INVITE_KEY); } catch { return null; }
+}
+
 export function FrogAvatar({ p, className }: { p: Pick<Profile, 'level' | 'mood' | 'equipped'>; className?: string }) {
   return (
     <span className={cn('shrink-0 rounded-2xl bg-lily-soft border border-lily/20 overflow-hidden', className ?? 'w-12 h-12')}>
@@ -24,10 +35,22 @@ export function FrogAvatar({ p, className }: { p: Pick<Profile, 'level' | 'mood'
 
 /** Pantalla para quien aún no tiene cuenta (o la app no tiene servidor). */
 export function NeedsAccount({ title, children }: { title: string; children: ReactNode }) {
+  const { session } = useAccount();
+  if (session) {
+    // Ha entrado pero aún no ha elegido nombre de usuario.
+    return (
+      <div className="mt-6 rounded-[1.75rem] border border-line bg-surface shadow-card p-6 text-center">
+        <img src={art('ui/empty-friends.webp')} alt="" className="mx-auto w-28 h-28 object-contain" />
+        <h2 className="font-display text-xl font-bold mt-3">Te falta elegir tu nombre</h2>
+        <p className="text-muted mt-2 max-w-md mx-auto leading-relaxed">Es como te verán tus amigos. Después tendrás tu código para invitarles.</p>
+        <Button variant="primary" className="mt-5" onClick={() => openAuth('signin')}>Elegir nombre</Button>
+      </div>
+    );
+  }
   return (
     <div className="mt-6 rounded-[1.75rem] border border-line bg-surface shadow-card p-6 text-center">
-      <span className="mx-auto w-14 h-14 rounded-2xl bg-lily-soft text-lily-strong flex items-center justify-center"><Icon name="users" size={26} /></span>
-      <h2 className="font-display text-xl font-bold mt-4">{title}</h2>
+      <img src={art('ui/empty-friends.webp')} alt="" className="mx-auto w-28 h-28 object-contain" />
+      <h2 className="font-display text-xl font-bold mt-3">{title}</h2>
       <p className="text-muted mt-2 max-w-md mx-auto leading-relaxed">{children}</p>
       {cloudEnabled ? (
         <div className="mt-5 flex flex-wrap gap-2 justify-center">
@@ -71,8 +94,26 @@ export function FriendsPage() {
 
   useEffect(() => {
     const c = route.params.get('codigo');
-    if (c) setCode(c);
+    if (c) {
+      setCode(c);
+      saveInvite(c);
+    }
   }, [route]);
+
+  // Si llegó con un enlace de invitación, se envía la solicitud en cuanto tenga cuenta.
+  useEffect(() => {
+    const invite = loadInvite();
+    if (!session || !profile || !invite) return;
+    saveInvite(null);
+    if (invite === profile.friend_code) return;
+    void social.add(invite).then(
+      (status) => {
+        setCode('');
+        setMsg({ tone: 'ok', text: status === 'accepted' ? '¡Ya sois amigos! Su rana ya está en tu charca.' : 'Te hemos conectado con quien te invitó: cuando acepte, aparecerá en tu charca.' });
+      },
+      (e) => setMsg({ tone: 'error', text: friendlyError(e) }),
+    );
+  }, [session, profile]);
 
   if (!session || !profile) {
     return (
@@ -165,7 +206,7 @@ export function FriendsPage() {
       <section className="mt-8">
         <h2 className="font-display text-lg font-bold px-1 mb-3">Tus amigos<span className="ml-2 text-sm text-muted">{friends.length}</span></h2>
         {friends.length === 0 ? (
-          <EmptyState title="Tu charca está muy tranquila" art={<span className="w-14 h-14 rounded-2xl bg-lily-soft text-lily-strong flex items-center justify-center"><Icon name="userPlus" size={26} /></span>}>
+          <EmptyState title="Tu charca está muy tranquila" art={<img src={art('ui/empty-friends.webp')} alt="" className="w-28 h-28 object-contain" />}>
             Comparte tu código o pulsa «Invitar» para mandar un enlace por WhatsApp.
           </EmptyState>
         ) : (

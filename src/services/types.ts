@@ -50,7 +50,14 @@ export interface RemoteState {
  */
 export interface Backend {
   enabled: boolean;
-  signUp(email: string, password: string): Promise<Session | null>;
+  /** Construye una sesión a partir de los tokens que vienen en el enlace de un correo. */
+  sessionFromTokens(accessToken: string, refreshToken: string, expiresIn?: number): Session | null;
+  /** redirectTo: adónde vuelve el enlace del correo de confirmación. */
+  signUp(email: string, password: string, redirectTo: string): Promise<Session | null>;
+  recover(email: string, redirectTo: string): Promise<void>;
+  updatePassword(s: Session, password: string): Promise<void>;
+  usernameAvailable(name: string): Promise<boolean>;
+  deleteAccount(s: Session): Promise<void>;
   signIn(email: string, password: string): Promise<Session>;
   refresh(refreshToken: string): Promise<Session>;
   signOut(s: Session): Promise<void>;
@@ -85,6 +92,13 @@ export function friendlyError(e: unknown): string {
     case 'self': return 'Ese es tu propio código.';
     case 'network': return 'No hay conexión con el servidor. Inténtalo de nuevo en un momento.';
     case 'session_expired': return 'Tu sesión ha caducado. Vuelve a entrar.';
+    case 'rate_limit': return 'Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.';
+    case 'invalid_email': return 'Ese correo no parece válido. Revísalo.';
+    case 'signup_disabled': return 'Ahora mismo no se pueden crear cuentas nuevas.';
+    case 'same_password': return 'La nueva contraseña tiene que ser distinta de la anterior.';
+    case 'link_expired': return 'El enlace ha caducado o ya se usó. Pide uno nuevo.';
+    case 'schema_missing': return 'Falta preparar la base de datos: ejecuta supabase/schema.sql en Supabase (ver docs/CUENTAS.md).';
+    case 'misconfigured': return 'La app no está bien conectada al servidor: revisa VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.';
     default: return e instanceof Error && e.message ? e.message : 'Algo ha fallado. Inténtalo de nuevo.';
   }
 }

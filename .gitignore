@@ -10,3 +10,6 @@ coverage
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+
+# Ilustraciones originales en alta resolución (las optimizadas están en public/art)
+design/originales/

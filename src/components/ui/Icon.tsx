@@ -1,3 +1,4 @@
+import { art } from '../frog/art';
 /** Iconos de trazo (24×24) inspirados en Lucide, sin dependencias. */
 const PATHS = {
   sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4" /></>,
@@ -29,6 +30,8 @@ const PATHS = {
   download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m7 10 5 5 5-5M12 15V3" /></>,
   upload: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="m17 8-5-5-5 5M12 3v12" /></>,
   tag: <><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l8.59-8.59a1 1 0 0 0 0-1.41z" /><circle cx="7" cy="7" r="1.5" /></>,
+  eye: <><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0" /><circle cx="12" cy="12" r="3" /></>,
+  eyeOff: <><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c4.36 0 8.07 2.7 9.94 6.65a1 1 0 0 1 0 .7 10.7 10.7 0 0 1-1.44 2.49M14.08 14.16a3 3 0 0 1-4.24-4.24M17.48 17.5A10.75 10.75 0 0 1 2.06 12.35a1 1 0 0 1 0-.7 10.8 10.8 0 0 1 4.45-5.14" /><path d="m2 2 20 20" /></>,
   lock: <><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
   play: <path d="m6 3 14 9-14 9z" />,
   pause: <><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></>,
@@ -70,14 +73,12 @@ export function Icon({ name, size = 18, className, strokeWidth = 2 }: { name: Ic
   );
 }
 
-/** Moneda de la charca (no es un icono de trazo). */
+/** Moneda de la charca (ilustración). */
 export function Coin({ size = 16, className }: { size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20" className={className} aria-hidden="true">
-      <circle cx="10" cy="10" r="9" fill="#f5c542" stroke="#c48a0e" strokeWidth="1.5" />
-      <circle cx="10" cy="10" r="5.6" fill="none" stroke="#e0a91f" strokeWidth="1.3" />
-      <path d="M7.6 10.6c.8 1 3.9 1 4.8 0" stroke="#a56f05" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-      <circle cx="8.1" cy="8.3" r=".9" fill="#a56f05" /><circle cx="11.9" cy="8.3" r=".9" fill="#a56f05" />
-    </svg>
-  );
+  return <img src={art('ui/coin.webp')} width={size} height={size} alt="" aria-hidden="true" draggable={false} className={className} style={{ width: size, height: size }} />;
+}
+
+/** Gota de experiencia (ilustración). */
+export function XpDrop({ size = 16, className }: { size?: number; className?: string }) {
+  return <img src={art('ui/xp.webp')} width={size} height={size} alt="" aria-hidden="true" draggable={false} className={className} style={{ width: size, height: size, objectFit: 'contain' }} />;
 }

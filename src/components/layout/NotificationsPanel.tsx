@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { art } from '../frog/art';
 import type { AppNotification } from '../../domain/types';
 import { cn } from '../../lib/cn';
 import { actions } from '../../store/actions';
@@ -39,7 +40,7 @@ export function NotificationsPanel({ open, onClose }: { open: boolean; onClose: 
       footer={notifications.length ? <Button variant="ghost" size="sm" onClick={actions.clearNotifications}>Borrar todo</Button> : undefined}
     >
       {notifications.length === 0 ? (
-        <EmptyState title="Sin avisos">Aquí verás las subidas de nivel, las tareas que se acumulan y la experiencia perdida.</EmptyState>
+        <EmptyState art={<img src={art('ui/empty-done.webp')} alt="" className="w-24 h-24 object-contain" />} title="Sin avisos">Aquí verás las subidas de nivel, las tareas que se acumulan y la experiencia perdida.</EmptyState>
       ) : (
         <ul className="space-y-1 -mx-2">
           {notifications.map((n) => (

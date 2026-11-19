@@ -1,10 +1,10 @@
 /* Service worker mínimo: la app funciona sin conexión.
  * - Navegación: red primero, caché si no hay conexión.
  * - Recursos estáticos (JS, CSS, fuentes, iconos): caché primero y se actualiza en segundo plano. */
-const CACHE = 'croac-v2';
+const CACHE = 'croac-v3';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './favicon.svg', './icons/icon-192.png', './icons/apple-touch-icon.png'])));
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './favicon-96.png', './icons/icon-192.png', './icons/apple-touch-icon.png', './art/ui/coin.webp?v=1', './art/ui/xp.webp?v=1'])));
   self.skipWaiting();
 });
 

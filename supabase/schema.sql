@@ -97,6 +97,10 @@ begin
   select id into target from public.profiles where friend_code = upper(trim(code));
   if target is null then raise exception 'not_found'; end if;
   if target = me then raise exception 'self'; end if;
+  -- Evita probar códigos al azar: máximo 20 solicitudes por hora.
+  if (select count(*) from public.friendships where requester = me and created_at > now() - interval '1 hour') >= 20 then
+    raise exception 'rate_limit';
+  end if;
 
   select * into existing from public.friendships
    where (requester = me and addressee = target) or (requester = target and addressee = me);
@@ -114,3 +118,34 @@ end $$;
 
 revoke all on function public.send_friend_request(text) from public, anon;
 grant execute on function public.send_friend_request(text) to authenticated;
+
+
+-- ---------- ¿Está libre este nombre de usuario? (antes de registrarse) ----------
+create or replace function public.username_available(name text) returns boolean
+language sql security definer set search_path = public stable as $$
+  select not exists (select 1 from public.profiles where username = lower(trim(name)));
+$$;
+revoke all on function public.username_available(text) from public;
+grant execute on function public.username_available(text) to anon, authenticated;
+
+-- ---------- Borrar mi cuenta (perfil, amistades y datos en la nube) ----------
+create or replace function public.delete_my_account() returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'no_auth'; end if;
+  delete from public.user_state where user_id = auth.uid();
+  delete from public.profiles where id = auth.uid();  -- en cascada: friendships
+  begin
+    delete from auth.users where id = auth.uid();
+  exception when insufficient_privilege then
+    null;  -- si el proyecto no lo permite, al menos los datos ya están borrados
+  end;
+end $$;
+revoke all on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;
+
+-- ---------- Permisos de la API (por si el proyecto no los da por defecto) ----------
+grant usage on schema public to anon, authenticated;
+grant select, insert, update on public.profiles to authenticated;
+grant select, update, delete on public.friendships to authenticated;
+grant select, insert, update, delete on public.user_state to authenticated;

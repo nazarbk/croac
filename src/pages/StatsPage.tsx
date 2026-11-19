@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { art } from '../components/frog/art';
 import { addDays, formatShort, startOfWeek, WEEKDAYS_LETTER, type DateStr } from '../domain/dates';
 import { limitsFor } from '../domain/plans';
 import { completionsByList, dailyStats, habitsOverview, summary, type HabitDay } from '../domain/stats';
@@ -125,7 +126,7 @@ export function StatsPage() {
       </div>
 
       {s.totalCompleted === 0 ? (
-        <EmptyState title="Aún no hay datos">Completa tu primera tarea y aquí empezarás a ver tu progreso.</EmptyState>
+        <EmptyState art={<img src={art('ui/empty-tasks.webp')} alt="" className="w-28 h-28 object-contain" />} title="Aún no hay datos">Completa tu primera tarea y aquí empezarás a ver tu progreso.</EmptyState>
       ) : (
         <>
           <section className="mt-6 rounded-2xl bg-surface border border-line p-5">

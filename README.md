@@ -17,18 +17,19 @@ Inspirado en lo que ya funciona: la entrada rápida y las vistas *Hoy/Próximo* 
 - Vistas **Hoy** (atrasadas, para hoy, completadas hoy), **Próximo** (14 días, con las repeticiones futuras) y **Todas las tareas** (agrupadas por fecha, con búsqueda y filtros por estado).
 - **Orden personalizado arrastrando** las tarjetas (ratón, dedo o teclado con ↑/↓ sobre el asa), o el orden automático por prioridad y hora.
 - **Subtareas dentro de la tarjeta**: se ven, se marcan, se añaden y se quitan sin abrir el editor. Al terminarlas todas, la app propone completar la tarea.
-- **Historial**: todas las tareas completadas agrupadas por día, con búsqueda. Desde ahí puedes **volver a programar** una tarea (con sus notas, etiquetas y subtareas) en uno o varios días a la vez, o convertirla en repetición.
+- **Historial**: todas las tareas completadas agrupadas por día, con búsqueda. Con **Repetir** vuelves a programar una tarea (con sus notas, etiquetas y subtareas) en uno o varios días a la vez, o la conviertes en repetición. También desde el menú *⋯* de cualquier tarea.
 - **Gestos en el móvil**: desliza una tarjeta a la derecha para completarla y a la izquierda para pasarla a mañana. Botón flotante **+** para añadir desde cualquier pantalla.
 
 **La rana**
+- Ilustrada: 5 etapas × 5 ánimos × 5 pieles, con complementos que se colocan solos en cada etapa.
 - 5 etapas de evolución: Renacuajo (nv. 1) → Renacuajo con patas (5) → Ranita (10) → Rana (20) → Rana sabia (35).
 - Su ánimo refleja cómo vas: feliz, tranquila, inquieta (tareas de ayer), triste (tareas que ya penalizan) o dormida (modo vacaciones).
 - Tienda con 29 artículos en 5 categorías (sombreros, cuello, gafas, pieles y fondos), algunos bloqueados por nivel y otros exclusivos de Pro.
 
 **Cuenta, amigos y charca** (opcional, con Supabase)
-- Cuenta con email y contraseña: tus tareas y tu rana se **sincronizan** entre el móvil y el ordenador. Sin cuenta, la app sigue funcionando en local.
-- **Amigos**: cada usuario tiene un código de amigo; se añade por código o con un enlace de invitación (WhatsApp, etc.). Solicitudes, aceptar, rechazar y quitar.
-- **La charca**: ves las ranas de tus amigos (con sus complementos) sobre nenúfares y un **ranking semanal** de XP y tareas completadas. La líder lleva corona.
+- Cuenta con email y contraseña (recuperación de contraseña y opción de borrar la cuenta): tus tareas y tu rana se **sincronizan** entre el móvil y el ordenador. Sin cuenta, la app sigue funcionando en local.
+- **Amigos**: cada usuario tiene un código de amigo; se añade por código o con un enlace de invitación (WhatsApp, etc.). Al abrir una invitación y crear la cuenta, la solicitud se envía sola.
+- **La charca**: ves las ranas de tus amigos (con sus complementos) sobre nenúfares y un **ranking semanal** de XP y tareas completadas. La líder lleva trofeo. De noche (tema oscuro) la charca tiene luna y luciérnagas.
 - Configuración en [`docs/CUENTAS.md`](docs/CUENTAS.md).
 
 **Reglas del juego**
@@ -75,9 +76,13 @@ npm run dev        # http://localhost:5173
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript sin emitir |
 
-### Desplegar
+### Publicar y compartir con tus amigos
 
-Es una web estática: funciona en Vercel, Netlify, GitHub Pages o Cloudflare Pages sin configuración extra (usa rutas con `#`, así que no necesita redirecciones). En Vercel: *Import project* → framework **Vite** → listo.
+1. **Vercel** (ya conectado al repositorio): cada `git push` a `main` publica una versión nueva.
+2. **Cuentas, amigos y charca**: sigue [`docs/CUENTAS.md`](docs/CUENTAS.md) (Supabase gratis, ~10 minutos) y añade `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en Vercel.
+3. Comparte el enlace de Vercel. Cada amigo: abre el enlace → **Ajustes → Crear cuenta** → (opcional) **Instalar la app**. Para añadirte, usa **Amigos → Invitar**: el enlace ya lleva tu código.
+
+Es una web estática: también funciona en Netlify, GitHub Pages o Cloudflare Pages (usa rutas con `#`, así que no necesita redirecciones).
 
 ### Subir a GitHub
 
@@ -116,16 +121,15 @@ Decisiones pensadas para crecer:
 - **Persistencia detrás de un adaptador** (`store/persistence.ts`). Hoy es `localStorage`; para sincronizar entre dispositivos basta con implementar `StorageAdapter` contra una API (Supabase, Firebase o un backend propio). Los datos llevan `version` y pasan por `migrate()`, así que cambiar el esquema no rompe a los usuarios existentes.
 - **Monetización por *entitlements*** (`domain/plans.ts`). La app pregunta `can(plan, 'premiumItems')` en lugar de mirar el plan; añadir un plan o mover una función a Pro es configuración. Los artículos de la tienda tienen `premium` y `minLevel`.
 - **Mínimas dependencias en runtime**: solo React. Router, store e iconos son propios y pequeños, y se pueden cambiar por React Router / Zustand / Lucide sin tocar las páginas.
-- **Diseño con tokens** (variables CSS + `@theme` de Tailwind 4): el modo oscuro y futuros temas solo redefinen variables, incluida la escena de la charca.
-
-Para regenerar iconos y pantallas de arranque a partir del logo, el dibujo está en `public/logo.svg` (512×512).
+- **Diseño con tokens** (variables CSS + `@theme` de Tailwind 4): el modo oscuro y futuros temas solo redefinen variables.
+- **Ilustraciones como datos**: la rana, sus complementos y los fondos son imágenes en `public/art/` colocadas con anclajes (`components/frog/art.ts`). Cambiar el arte no toca código; ver [`docs/IMAGENES.md`](docs/IMAGENES.md).
 
 ## Documentación
 
 - [`docs/RESUMEN.md`](docs/RESUMEN.md): resumen técnico completo (para revisiones).
 - [`docs/AUDITORIA.md`](docs/AUDITORIA.md): auditoría de calidad, seguridad y escalado, con lo pendiente priorizado.
-- [`docs/IMAGENES.md`](docs/IMAGENES.md): lista de todas las imágenes, con prompts para generarlas con IA.
-- [`docs/CUENTAS.md`](docs/CUENTAS.md): cómo activar cuentas, sincronización y amigos con Supabase.
+- [`docs/IMAGENES.md`](docs/IMAGENES.md): las ilustraciones, dónde están y cómo cambiarlas.
+- [`docs/CUENTAS.md`](docs/CUENTAS.md): paso a paso para activar cuentas, sincronización, amigos y la charca con Supabase.
 - [`docs/ROADMAP.md`](docs/ROADMAP.md): próximos pasos.
 
 ## Licencia

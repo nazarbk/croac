@@ -1,6 +1,6 @@
 # Croac · resumen técnico del proyecto
 
-> Documento pensado para revisar el proyecto con otra herramienta (o persona). Describe qué hace la app, cómo está construida, dónde está cada cosa y qué limitaciones conocidas tiene. Versión 0.3.0, noviembre de 2026.
+> Documento pensado para revisar el proyecto con otra herramienta (o persona). Describe qué hace la app, cómo está construida, dónde está cada cosa y qué limitaciones conocidas tiene. Versión 1.0.0, noviembre de 2026.
 
 ## 1. Qué es
 
@@ -18,7 +18,7 @@ Referencias de producto: Todoist (entrada rápida, vistas Hoy/Próximo, priorida
 | Estado | Store propio tipo Zustand (`src/store/createStore.ts`) sobre `useSyncExternalStore` |
 | Router | Propio, por hash (`#/hoy`), sin dependencias (`src/lib/router.ts`) |
 | Iconos | SVG propios estilo Lucide (`src/components/ui/Icon.tsx`) |
-| Gráficos de la rana | SVG generado en React (`src/components/frog/`) |
+| Gráficos de la rana | Ilustraciones WebP en `public/art/` colocadas con anclajes (`src/components/frog/art.ts`) |
 | Persistencia local | `localStorage` con versión y migraciones (`src/store/persistence.ts`) |
 | Backend (opcional) | Supabase: Auth + PostgREST vía `fetch`, sin SDK (`src/services/`), esquema en `supabase/schema.sql` |
 | Tests | Vitest (lógica de dominio, 38 tests) |
@@ -67,11 +67,11 @@ croac/
     ├── components/
     │   ├── ui/                 Button, Modal (hoja inferior en móvil), Menu, Segmented, Switch, Toaster…
     │   ├── tasks/              TaskItem (tarjeta), Sortable (arrastrar), TaskEditor, QuickAdd, RecurrencePicker
-    │   ├── frog/               Frog (5 etapas × 5 ánimos), Accessories, Scenes, skins
+    │   ├── frog/               Frog (imágenes por etapa, ánimo y piel), art.ts (anclajes de complementos)
     │   ├── layout/             AppShell (barra lateral, cabecera móvil, barra inferior, botón +)
     │   ├── common/             MiniCalendar (selección múltiple de días)
     │   └── brand/              Logo
-    ├── features/               Revisión diaria, bienvenida, celebraciones, recordatorios, atajos,
+    ├── features/               Revisión diaria, bienvenida, celebraciones, recordatorios, atajos, repetir tareas,
     │                           instalación PWA, cuenta (login, conflicto de sincronización), ErrorBoundary
     └── pages/                  Hoy, Próximo, Tareas, Historial, Rana, Charca, Amigos, Tienda, Estadísticas, Ajustes
 ```
@@ -109,7 +109,7 @@ croac/
 - Gestos en móvil: deslizar a la derecha completa, a la izquierda pospone.
 - Rana con 5 etapas, 5 ánimos, tienda, armario; celebraciones al subir de nivel.
 - Estadísticas: racha, días perfectos, barras de 14 días, mapa de constancia, hábitos, por lista.
-- Cuenta opcional: sincronización entre dispositivos, amigos por código/enlace, charca compartida y ranking semanal.
+- Cuenta opcional: sincronización entre dispositivos, recuperación de contraseña, borrar cuenta, amigos por código/enlace (la invitación se envía sola), charca compartida ilustrada y ranking semanal.
 - PWA: instalable (Android, iOS, escritorio), funciona sin conexión, iconos y pantallas de arranque.
 - Ajustes: margen de penalización, vacaciones, inicio del día, tema, notificaciones, sonidos, orden, plan (Pro en demo), exportar/importar JSON, borrar todo.
 
@@ -133,7 +133,7 @@ Variables opcionales (`.env`): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (ve
 
 ## 9. Limitaciones conocidas
 
-Ver `docs/AUDITORIA.md` para el detalle. Las principales: el cierre diario y el ranking se calculan en el cliente (se pueden falsear), la sincronización es "gana el último", los recordatorios solo funcionan con la app abierta y no hay opción de borrar la cuenta desde la app.
+Ver `docs/AUDITORIA.md` para el detalle. Las principales: el cierre diario y el ranking se calculan en el cliente (se pueden falsear), la sincronización es "gana el último", los recordatorios solo funcionan con la app abierta y falta la política de privacidad.
 
 ## 10. Qué revisar con más atención
 

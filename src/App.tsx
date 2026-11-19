@@ -19,10 +19,11 @@ import { UpcomingPage } from './pages/UpcomingPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { PondPage } from './pages/PondPage';
 import { FriendsPage } from './pages/FriendsPage';
-import { AuthModal, SyncConflictModal } from './features/account';
+import { AuthModal, NewPasswordModal, SyncConflictModal } from './features/account';
 import { useCloudSync } from './services/sync';
 import { account } from './services/account';
 import { ErrorBoundary } from './features/ErrorBoundary';
+import { ScheduleAgain } from './features/ScheduleAgain';
 import { tickClock, useApp } from './store/appStore';
 
 const PAGES: Record<RouteName, { title: string; Component: () => React.ReactElement }> = {
@@ -102,7 +103,9 @@ export default function App() {
       <Onboarding />
       <DailyReview />
       <AuthModal />
+      <NewPasswordModal />
       <SyncConflictModal />
+      <ScheduleAgain />
     </>
   );
 }

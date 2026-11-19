@@ -5,6 +5,8 @@ import { DIFFICULTIES } from '../../domain/progression';
 import { describeRecurrence, isRecurring } from '../../domain/recurrence';
 import type { Priority, Task, TaskList } from '../../domain/types';
 import { cn } from '../../lib/cn';
+import { openScheduleAgain } from '../../features/ScheduleAgain';
+import { templateOf } from '../../domain/tasks';
 import { actions } from '../../store/actions';
 import { ui, useUi } from '../../store/uiStore';
 import { completeWithFeedback, deleteWithUndo, postponeToTomorrow } from '../../features/feedback';
@@ -325,6 +327,7 @@ export function TaskItem({ task, today, list, streak = 0, showDate = true, showL
               ...(canPostpone ? [{ label: 'Posponer a mañana', icon: 'arrowRight' as const, onSelect: () => postponeToTomorrow(task.id, addDays(today, 1)) }] : []),
               ...(!done && od > 0 ? [{ label: 'Mover a hoy', icon: 'sun' as const, onSelect: () => actions.reschedule(task.id, today) }] : []),
               { label: 'Editar', icon: 'edit', onSelect: () => ui.openEditor(task.id) },
+              { label: 'Repetir otros días', icon: 'calendarPlus', onSelect: () => openScheduleAgain(templateOf(task)) },
               { label: 'Duplicar', icon: 'copy', onSelect: () => actions.duplicateTask(task.id) },
               { label: 'Eliminar', icon: 'trash', danger: true, onSelect: () => deleteWithUndo(task.id) },
             ]}

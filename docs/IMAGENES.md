@@ -1,113 +1,55 @@
-# Croac · lista de imágenes para generar con IA
+# Croac · ilustraciones
 
-> Hoy todas las ilustraciones de la app se dibujan con SVG en código (`src/components/frog/`). Esta lista sirve para encargarlas a una herramienta de IA de imagen y sustituirlas. Al final hay notas de cómo integrarlas.
+Desde la v1.0 la app usa ilustraciones en lugar de los dibujos SVG hechos en código. Las originales (PNG de 1254 px, ~60 MB) se guardan fuera de Git en `design/originales/`. La app carga versiones optimizadas en WebP desde `public/art/` (~7 MB en total, y cada pantalla solo descarga lo que muestra).
 
-## Estilo común (pegar al principio de cada prompt)
+## Dónde está cada cosa
 
-> Ilustración para app móvil, estilo cartoon vectorial plano con sombreado suave, contornos redondeados de grosor medio en verde oscuro (#1f3d2b), colores saturados pero amables, personaje adorable tipo kawaii, rana verde (#4caf6e, vientre #d9f2c4, mejillas rosadas), ojos grandes brillantes. Fondo transparente. Vista frontal, centrado, sin texto, sin marcas de agua.
-
-Formato: **PNG con transparencia** (o SVG si la herramienta lo permite), lienzo **cuadrado 1024×1024**, el personaje ocupando el 80 % inferior y centrado. Para accesorios, lienzo 1024×1024 con el objeto centrado y sin personaje.
-
-## 1. Marca e instalación
-
-| Archivo | Tamaño | Descripción / prompt |
+| Carpeta | Contenido | Tamaño máx. |
 |---|---|---|
-| `public/logo.svg` (o `logo.png`) | 1024×1024 | Cabeza de rana sonriente, minimalista, legible a 32 px, fondo transparente |
-| `public/icons/icon-512.png`, `icon-192.png` | 512 / 192 | Icono de app: cabeza de rana sobre fondo degradado verde (#2f9a55 → verde lima claro), esquinas NO redondeadas (lo hace el sistema) |
-| `public/icons/icon-maskable-512.png`, `-192.png` | 512 / 192 | Igual, con la rana dentro del 80 % central (zona segura) y el fondo llenando todo |
-| `public/icons/apple-touch-icon.png` | 180×180 | Igual que el icono, sin transparencia |
-| `public/icons/badge-96.png` | 96×96 | Silueta blanca monocroma de la rana para notificaciones Android |
-| `public/favicon.svg`, `favicon.ico` | 32/48 | Versión simplificada del logo |
-| `public/splash/splash-{light,dark}-WxH.png` | 9 tamaños iPhone × 2 temas | Logo centrado (≈25 % del ancho) con «Croac» debajo; fondo #eef4ef (claro) / verde muy oscuro del tema (oscuro) |
-| `public/screenshots/*.png` | 1080×1920, 1920×1080 | Capturas reales de la app (no generar con IA) |
+| `public/art/frog/<piel>/<etapa>-<ánimo>.webp` | La rana: 5 pieles × 5 etapas × 5 ánimos = 125 imágenes | 720 px |
+| `public/art/acc/<id>.webp` | 19 complementos (9 sombreros, 6 de cuello, 4 gafas) | 480 px |
+| `public/art/bg/<id>.webp` | 5 fondos de la escena de la rana | 1254 px |
+| `public/art/pond/{day,night}-{square,wide}.webp` | La charca de amigos: de día / de noche, para móvil / escritorio | 1600 px |
+| `public/art/ui/*.webp` | Moneda, gota de XP, trofeo e ilustraciones de estados vacíos | 128–480 px |
+| `public/icons/`, `public/favicon*`, `public/splash/`, `public/og.jpg` | Icono de la app, favicon, pantallas de arranque de iPhone e imagen al compartir el enlace | — |
 
-## 2. La rana: 5 etapas × 5 ánimos = 25 imágenes
+- **Etapas** (`stage`): `tadpole` (renacuajo, nivel 1), `froglet` (con patas, 5), `young` (ranita, 10), `adult` (rana, 20), `sage` (rana sabia, 35).
+- **Ánimos** (`mood`): `neutral`, `happy` (día perfecto), `worried` (tareas de ayer sin hacer), `sad` (perdiendo XP), `sleeping` (modo vacaciones).
+- **Pieles**: `skin-green`, `skin-blue`, `skin-pink`, `skin-gold`, `skin-midnight`. Solo había arte de cada piel en la rana adulta neutral; el resto se generó recoloreando la rana verde (manteniendo ojos, mejillas, contorno y la barba de la rana sabia).
+- La **rana adulta neutral verde** no venía en el lote: se obtuvo recoloreando la rosa.
 
-Nombre de archivo sugerido: `frog-{etapa}-{ánimo}.png`.
+## Cómo encajan los complementos
 
-| Etapa (id) | Nivel | Prompt |
-|---|---|---|
-| `tadpole` · Renacuajo | 1–4 | Renacuajo bebé verde con cola ondulada, cuerpo redondo, nadando de frente |
-| `froglet` · Renacuajo con patas | 5–9 | Renacuajo con dos patitas traseras y cola más corta, medio fuera del agua |
-| `young` · Ranita | 10–19 | Rana pequeña y joven, cabeza grande, sentada, aspecto curioso |
-| `adult` · Rana | 20–34 | Rana adulta sentada, con manchas suaves en la espalda, segura de sí misma |
-| `sage` · Rana sabia | 35+ | Rana anciana y sabia, cejas pobladas, pequeña barba blanca, aura dorada sutil |
+Todas las ranas de una misma etapa comparten encuadre, así que cada complemento se coloca con unos puntos de anclaje por etapa (cabeza, ojos y cuello) y unos ajustes por artículo (tamaño y punto de apoyo). Están en `src/components/frog/art.ts`:
 
-| Ánimo (id) | Cuándo | Expresión |
-|---|---|---|
-| `happy` | Todo al día, día perfecto | Ojos cerrados en arco sonriendo, boca abierta feliz |
-| `neutral` | Normal | Ojos abiertos, sonrisa suave |
-| `worried` | Hay tareas atrasadas | Cejas inclinadas, pupilas pequeñas, boca ondulada |
-| `sad` | Lleva días perdiendo XP | Cejas caídas, lágrima, boca hacia abajo |
-| `sleeping` | Modo vacaciones | Ojos cerrados, «Zzz», postura relajada |
+- `STAGE_ART[etapa]`: dónde se dibuja la rana en una caja de 240 × 240 y los anclajes `hat`, `eyes`, `neck` como `[x, y, ancho de referencia]`.
+- `ITEM_ART[id]`: `w` (ancho relativo), `ax`/`ay` (qué punto del dibujo cae en el ancla), `dx` (desplazamiento, p. ej. el monóculo en un ojo) y `center` (el casco va centrado en la cabeza).
 
-**Importante**: los accesorios se colocan encima, así que las 25 imágenes deben mantener **la misma posición de cabeza y cuello por etapa** (genera primero la de `neutral` y pide las demás "con la misma pose y encuadre").
+Las gafas se ocultan cuando la rana duerme.
 
-## 3. Pieles (5)
+## Cambiar o añadir ilustraciones
 
-| id | Nombre | Colores |
-|---|---|---|
-| `skin-green` | Verde charca | #4caf6e / vientre #d9f2c4 |
-| `skin-blue` | Azul dardo | Azul cobalto con manchas negras (rana dardo) |
-| `skin-pink` | Rosa chicle | Rosa pastel, vientre crema |
-| `skin-gold` | Dorada | Dorado metálico con brillos |
-| `skin-midnight` | Medianoche | Azul marino con pecas que brillan como estrellas |
+1. Mantén el **mismo encuadre** que la imagen que sustituyes (misma pose y tamaño en el lienzo), o habrá que reajustar los anclajes.
+2. Exporta en WebP (calidad ~80) con el mismo nombre en `public/art/...`.
+3. Sube `ART_VERSION` en `src/components/frog/art.ts` para que los móviles no usen la versión en caché.
+4. Para un complemento nuevo: añádelo al catálogo (`src/domain/shop.ts`), su imagen en `public/art/acc/` y su entrada en `ITEM_ART`.
 
-Opción barata: generar la rana solo en verde y aplicar el color con un filtro (`hue-rotate`) o capa de color en CSS. Opción buena: 5 pieles × 25 = 125 imágenes (recomendado solo para `neutral` y `happy`).
+## Origen de cada imagen
 
-## 4. Accesorios (19)
-
-Lienzo 1024×1024, objeto centrado, vista frontal, mismo estilo.
-
-**Sombreros (9)**: `hat-party` gorrito de fiesta de cono con pompón · `hat-flower` flor de nenúfar rosa · `hat-cap` gorra deportiva verde con visera hacia delante · `hat-beanie` gorro de lana con pompón a rayas · `hat-beret` boina roja ladeada · `hat-tophat` chistera negra con cinta verde · `hat-wizard` sombrero de mago morado con estrellas · `hat-crown` corona dorada con gemas · `hat-astronaut` casco de astronauta transparente.
-
-**Cuello (6)**: `neck-bandana` pañuelo rojo de cowboy · `neck-bowtie` pajarita · `neck-tie` corbata · `neck-scarf` bufanda de rayas · `neck-medal` medalla dorada con cinta · `neck-pearls` collar de perlas.
-
-**Gafas (4)**: `eyes-round` gafas redondas de pasta · `eyes-sun` gafas de sol negras · `eyes-heart` gafas en forma de corazón rosas · `eyes-monocle` monóculo dorado con cadena.
-
-### Puntos de anclaje (en % del lienzo de la rana)
-
-| Etapa | Sombrero (x, y, escala) | Gafas (y, escala) | Cuello (x, y, escala) |
-|---|---|---|---|
-| tadpole | 45,8 % · 35,8 % · 0,66 | 48,3 % · 0,56 | 45 % · 73,3 % · 0,55 |
-| froglet | 47,9 % · 34,2 % · 0,78 | 37,5 % · 0,70 | 50 % · 65 % · 0,75 |
-| young | adulta × 0,8 centrada en (50 %, 92,5 %) | | |
-| adult | 50 % · 25,8 % · 0,95 | 31,7 % · 1 | 50 % · 63,3 % · 1 |
-| sage | adulta × 1,04 | | |
-
-## 5. Fondos (5) — 1440×1440, sin rana
-
-| id | Prompt |
+| Uso | Original (número final del nombre del archivo) |
 |---|---|
-| `bg-pond` | Charca de día: agua verde azulada, nenúfares, juncos a los lados, cielo claro |
-| `bg-sunset` | La misma charca al atardecer, cielo naranja y rosa, sol tras los juncos |
-| `bg-night` | Charca de noche con luna llena y estrellas, reflejos en el agua |
-| `bg-rain` | Charca en día de lluvia, gotas y ondas en el agua, cielo gris suave |
-| `bg-space` | Espacio con planetas y estrellas, un nenúfar flotando en el centro |
+| Renacuajo: neutral, feliz, preocupado, triste, dormido | 4, 21, 23, 24, 22 |
+| Con patas | 3, 14, 13, 16, 20 |
+| Ranita | 2, 12, 7, 9, 11 |
+| Rana adulta | (48 recoloreada), 8, 10, 6, 5 |
+| Rana sabia | 1, 15, 17, 19, 18 |
+| Pieles (adulta neutral) | azul 44, medianoche 47, rosa 48, dorada 49 |
+| Sombreros | fiesta 25, gorra 26, chistera 27, lana 28, mago 29, flor 30, corona 31, casco 33, boina 34 |
+| Cuello | pañuelo 32, corbata 35, pajarita 36, bufanda 37, perlas 38 (solo la mitad inferior), medalla 40 |
+| Gafas | redondas 39, sol 41, corazón 43, monóculo 66 |
+| Fondos | charca 46, atardecer 52, noche 51, lluvia 53, espacio 55 |
+| Charca de amigos | día 45 / 54, noche 50 / 67 |
+| Interfaz | moneda 56, XP 60, trofeo 68, vacíos 59, 65, 69 |
+| Iconos y arranque | icono 70, favicon 75, notificaciones 72, arranque 71 (oscuro) y 74 (claro) |
 
-Dejar un nenúfar o zona despejada en el centro inferior donde se sienta la rana.
-
-## 6. La charca social (amigos)
-
-| Archivo | Tamaño | Prompt |
-|---|---|---|
-| `pond-social-day.png` | 1600×1000 (y 1000×1000 para móvil) | Vista elevada de una charca grande con 10 nenúfares repartidos en perspectiva (grandes delante, pequeños al fondo), juncos y flores, sin ranas |
-| `pond-social-night.png` | Igual | Misma escena de noche, luciérnagas |
-| `lilypad.png` | 512×256 | Un nenúfar visto en perspectiva, para colocar ranas encima |
-| `trophy-crown.png` | 256×256 | Pequeña corona/trofeo dorado para el líder semanal |
-
-## 7. Iconos de interfaz pequeños
-
-| Archivo | Prompt |
-|---|---|
-| `coin.png` (128×128) | Moneda dorada con una huella de rana grabada |
-| `xp-drop.png` (128×128) | Gota/estrella verde brillante que representa experiencia |
-| `empty-*.png` (512×512) | Ilustraciones para estados vacíos: rana leyendo una lista vacía, rana durmiendo en un nenúfar, rana con prismáticos (amigos) |
-| `celebrate-levelup.png` | Rana saltando con confeti (para la ventana de subida de nivel) |
-
-## 8. Integración
-
-1. Guardar en `public/art/` con los nombres de arriba.
-2. En `Frog.tsx`, sustituir el cuerpo SVG por `<image href="/art/frog-{etapa}-{ánimo}.png" width="240" height="240" />` dentro del mismo `viewBox="0 0 240 240"`; los accesorios siguen funcionando con los mismos anclajes.
-3. Exportar en WebP (≈60–150 KB cada una) y añadir las rutas al precache del service worker solo para la etapa actual.
-4. Iconos y splash: sustituir los archivos con el mismo nombre; no hace falta cambiar código.
+No se usan: 57 (trofeo con restos de fondo), 42 (monóculo con fondo de cuadros pintado), 58, 62, 63, 73, 76.
