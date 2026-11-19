@@ -7,8 +7,24 @@
  */
 import { ApiError, type Backend, type Friendship, type Profile, type RemoteState, type Session } from './types';
 
-const URL_ = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.replace(/\/$/, '') ?? '';
-const KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? '';
+const clean = (v: unknown) => (typeof v === 'string' ? v.trim().replace(/^["']|["']$/g, '') : '');
+
+/**
+ * Solo el dominio del proyecto (https://xxxx.supabase.co). Si se pega la URL de la
+ * API REST (…/rest/v1/) u otra ruta, se recorta: si no, Supabase responde
+ * «Invalid path specified in request URL».
+ */
+function projectUrl(raw: string): string {
+  if (!raw) return '';
+  try {
+    return new URL(raw.includes('://') ? raw : `https://${raw}`).origin;
+  } catch {
+    return raw.replace(/\/+$/, '');
+  }
+}
+
+const URL_ = projectUrl(clean(import.meta.env.VITE_SUPABASE_URL));
+const KEY = clean(import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 interface AuthResponse {
   access_token?: string;
@@ -49,7 +65,7 @@ function toApiError(status: number, body: Record<string, string> | null): ApiErr
   if (raw.includes('signup_disabled') || raw.includes('signups not allowed')) return new ApiError('signup_disabled', msg, status);
   if (raw.includes('same_password')) return new ApiError('same_password', msg, status);
   if (raw.includes('pgrst202') || raw.includes('could not find the function') || raw.includes('pgrst205') || raw.includes('42p01') || raw.includes('could not find the table')) return new ApiError('schema_missing', msg, status);
-  if (raw.includes('invalid api key') || raw.includes('no api key')) return new ApiError('misconfigured', msg, status);
+  if (raw.includes('invalid api key') || raw.includes('no api key') || raw.includes('invalid path specified')) return new ApiError('misconfigured', msg, status);
   if (raw.includes('already') && raw.includes('regist')) return new ApiError('user_already_exists', msg, status);
   if (raw.includes('user_already_exists')) return new ApiError('user_already_exists', msg, status);
   if (raw.includes('weak_password') || raw.includes('at least 6')) return new ApiError('weak_password', msg, status);
