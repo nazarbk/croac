@@ -25,7 +25,8 @@ function ItemCard({ item }: { item: ShopItem }) {
   const equipped = frog.equipped[item.slot] === item.id;
   const today = useToday();
   const check = canBuy(item, { coins: frog.coins, level: info.level, owned: frog.owned, isPro: can(plan, 'premiumItems'), today });
-  const preview = { ...frog.equipped, [item.slot]: item.id };
+  // Solo lo que se vende (sobre la piel que lleve), sin el resto de complementos puestos.
+  const preview = { skin: frog.equipped.skin, [item.slot]: item.id };
 
   const buy = () => {
     const r = actions.buy(item.id);

@@ -25,6 +25,7 @@ export const CHANGELOG: Release[] = [
       { kind: 'nuevo', text: 'Temporada 1, «Hora de aventuras», hasta el miércoles 25 de noviembre: gorro de oso, bufanda perruna, gafas de caramelo y de nube, colgante bajo-hacha y corona helada.' },
       { kind: 'nuevo', text: 'Este tablón de novedades, para que veas qué cambia en cada actualización.' },
       { kind: 'mejora', text: 'Todos los complementos redibujados: los del cuello quedan bajo la barbilla, los sombreros entre los ojos y las gafas siempre por delante.' },
+      { kind: 'mejora', text: 'En la tienda cada artículo se ve solo y entero sobre tu rana, sin el resto de complementos que lleves puestos.' },
     ],
   },
   {

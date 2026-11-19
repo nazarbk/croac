@@ -31,17 +31,19 @@ export interface ItemArt {
   center?: number;
   /** No pintar los ojos por encima (cascos y capuchas que rodean la cabeza). */
   noEyes?: boolean;
+  /** Esconder la parte de arriba bajo la barbilla (ninguno lo usa: se ven enteros). */
+  tuck?: boolean;
 }
 export const ITEM_ART: Record<string, ItemArt> = {
   'neck-tie': { ratio: 2.0831, w: 0.26, ax: 0.5, ay: 0.04 },
-  'neck-bandana': { ratio: 0.6763, w: 0.78, ax: 0.5, ay: 0.12 },
-  'neck-pearls': { ratio: 0.3874, w: 0.78, ax: 0.5, ay: 0.2 },
-  'neck-scarf': { ratio: 0.7011, w: 0.84, ax: 0.5, ay: 0.14 },
-  'neck-bowtie': { ratio: 0.4838, w: 0.48, ax: 0.5, ay: 0.25 },
+  'neck-bandana': { ratio: 0.6763, w: 0.78, ax: 0.5, ay: 0.1 },
+  'neck-pearls': { ratio: 0.3874, w: 0.74, ax: 0.5, ay: 0.3 },
+  'neck-scarf': { ratio: 0.7011, w: 0.8, ax: 0.5, ay: 0.1 },
+  'neck-bowtie': { ratio: 0.4838, w: 0.44, ax: 0.5, ay: 0.3 },
   'eyes-sun': { ratio: 0.365, w: 1.92, ax: 0.5, ay: 0.5 },
   'eyes-round': { ratio: 0.4146, w: 1.96, ax: 0.5, ay: 0.5 },
   'eyes-heart': { ratio: 0.4179, w: 2.0, ax: 0.5, ay: 0.5 },
-  'neck-medal': { ratio: 1.0956, w: 0.52, ax: 0.5, ay: 0.04 },
+  'neck-medal': { ratio: 1.0956, w: 0.46, ax: 0.5, ay: 0.05 },
   'eyes-monocle': { ratio: 1.4711, w: 0.64, ax: 0.4, ay: 0.29, dx: 0.5 },
   'hat-party': { ratio: 1.5182, w: 0.4, ax: 0.5, ay: 0.95 },
   'hat-beanie': { ratio: 0.9624, w: 0.64, ax: 0.5, ay: 0.82 },
@@ -52,8 +54,8 @@ export const ITEM_ART: Record<string, ItemArt> = {
   'hat-wizard': { ratio: 0.8596, w: 0.72, ax: 0.5, ay: 0.92 },
   'hat-crown': { ratio: 0.5692, w: 0.58, ax: 0.5, ay: 0.92 },
   'hat-astronaut': { ratio: 0.8838, w: 1.08, ax: 0.5, ay: 0.5, center: 0.3, noEyes: true },
-  'neck-s1-scarf': { ratio: 0.6731, w: 0.84, ax: 0.5, ay: 0.14 },
-  'neck-s1-axe': { ratio: 1.513, w: 0.54, ax: 0.5, ay: 0.03 },
+  'neck-s1-scarf': { ratio: 0.6731, w: 0.8, ax: 0.5, ay: 0.1 },
+  'neck-s1-axe': { ratio: 1.513, w: 0.46, ax: 0.5, ay: 0.06 },
   'eyes-s1-candy': { ratio: 0.6919, w: 2.0, ax: 0.5, ay: 0.64 },
   'hat-s1-bear': { ratio: 0.7789, w: 1.1, ax: 0.5, ay: 0.5, center: -0.06, noEyes: true },
   'eyes-s1-cloud': { ratio: 0.4689, w: 2.06, ax: 0.5, ay: 0.6 },

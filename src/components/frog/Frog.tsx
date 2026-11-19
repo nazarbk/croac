@@ -35,8 +35,8 @@ function itemRect(id: string, stage: StageId): Rect | null {
 
 /**
  * Capas para que los complementos parezcan puestos y no pegados encima:
- * - Cuello: la cabeza se vuelve a pintar encima de la parte alta del complemento,
- *   así el cuello de la corbata, el pañuelo o la cinta de la medalla quedan bajo la barbilla.
+ * - Cuello: el complemento se ve entero, apoyado justo bajo la barbilla. Si alguno lleva
+ *   «tuck», la cabeza se pinta encima de su parte alta para esconderla bajo la barbilla.
  * - Sombreros: los ojos (que en las ranas están encima de la cabeza) se pintan encima del
  *   sombrero, que queda apoyado entre ellos.
  */
@@ -86,7 +86,7 @@ export function Frog({ level, mood = 'neutral', equipped = {}, scene = false, ho
         <filter id={`${uid}-sh`} x="-10%" y="-10%" width="120%" height="130%">
           <feDropShadow dx="0" dy="1.2" stdDeviation="1" floodColor="#123b22" floodOpacity="0.28" />
         </filter>
-        {neck && <clipPath id={`${uid}-head`}><rect x="0" y="0" width="240" height={sa.neck[1] + TUCK} /></clipPath>}
+        {neck && ITEM_ART[neck]?.tuck && <clipPath id={`${uid}-head`}><rect x="0" y="0" width="240" height={sa.neck[1] + TUCK} /></clipPath>}
         {hat && !ITEM_ART[hat]?.noEyes && (
           <clipPath id={`${uid}-eyes`}>
             <circle cx={ex - span / 2} cy={ey} r={span * EYE_BUMP} />
@@ -99,7 +99,7 @@ export function Frog({ level, mood = 'neutral', equipped = {}, scene = false, ho
         <g key={hopKey} className={hopKey ? 'frog-hop' : undefined}>
           <g className="frog-idle">
             {frogImg()}
-            {neck && <>{item(neck)}{frogImg(`${uid}-head`)}</>}
+            {neck && <>{item(neck)}{ITEM_ART[neck]?.tuck && frogImg(`${uid}-head`)}</>}
             {hat && <>{item(hat)}{!ITEM_ART[hat]?.noEyes && frogImg(`${uid}-eyes`)}</>}
             {/* Las gafas siempre por delante de todo, también del sombrero. */}
             {item(eyes)}
