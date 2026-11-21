@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "fit:apply": "node scripts/apply-fit.mjs"
   },
   "engines": {
     "node": ">=20.19"

@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 import pkg from './package.json' with { type: 'json' };
+import { fitDevPlugin } from './scripts/fit-dev-plugin.mjs';
 
 // URL pública para la vista previa al compartir el enlace (WhatsApp, etc.): las imágenes
 // de og:image tienen que ser absolutas. En Vercel se toma sola; en otro sitio, VITE_SITE_URL.
@@ -21,6 +22,8 @@ export default defineConfig(({ mode }) => ({
     react(),
     tailwindcss(),
     { name: 'site-url', transformIndexHtml: (html: string) => html.replaceAll('__SITE_URL__', siteUrl) },
+    // Solo con `npm run dev`: el probador (#/dev/wardrobe) guarda los ajustes en el proyecto.
+    fitDevPlugin(),
     ...(mode === 'single' ? [viteSingleFile()] : []),
   ],
   define: {

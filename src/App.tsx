@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { AppShell } from './components/layout/AppShell';
 import { TaskEditor } from './components/tasks/TaskEditor';
 import { Toaster } from './components/ui/Toaster';
@@ -27,6 +27,12 @@ import { ScheduleAgain } from './features/ScheduleAgain';
 import { WhatsNew } from './features/WhatsNew';
 import { NewsPage } from './pages/NewsPage';
 import { tickClock, useApp } from './store/appStore';
+
+/**
+ * Probador de complementos (#/dev/wardrobe). Solo existe en desarrollo: en el build de
+ * producción `import.meta.env.DEV` es false, la rama desaparece y su código no se incluye.
+ */
+const Wardrobe = import.meta.env.DEV ? lazy(() => import('./dev/wardrobe/WardrobePage')) : null;
 
 const PAGES: Record<RouteName, { title: string; Component: () => React.ReactElement }> = {
   hoy: { title: 'Hoy', Component: TodayPage },
@@ -92,6 +98,10 @@ export default function App() {
     document.title = `${page.title} · Croac`;
     window.scrollTo(0, 0);
   }, [page]);
+
+  if (import.meta.env.DEV && Wardrobe && route.path === 'dev/wardrobe') {
+    return <Suspense fallback={null}><Wardrobe /></Suspense>;
+  }
 
   return (
     <>

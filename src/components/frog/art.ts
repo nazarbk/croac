@@ -33,6 +33,13 @@ export interface ItemArt {
   noEyes?: boolean;
   /** Esconder la parte de arriba bajo la barbilla (ninguno lo usa: se ven enteros). */
   tuck?: boolean;
+  /**
+   * Parte visible del archivo según su canal alfa: [x0, y0, x1, y1] en proporción (0-1).
+   * Se mide una vez al preparar la imagen (no en cada render). Sin él se asume que el
+   * archivo ya está recortado (todos los de public/art/acc lo están). `ratio`, `w`, `ax` y
+   * `ay` se refieren siempre a la parte visible, no al archivo con sus márgenes.
+   */
+  bounds?: [number, number, number, number];
 }
 export const ITEM_ART: Record<string, ItemArt> = {
   'neck-tie': { ratio: 2.0831, w: 0.26, ax: 0.5, ay: 0.04 },
@@ -60,4 +67,25 @@ export const ITEM_ART: Record<string, ItemArt> = {
   'hat-s1-bear': { ratio: 0.7789, w: 1.1, ax: 0.5, ay: 0.5, center: -0.06, noEyes: true },
   'eyes-s1-cloud': { ratio: 0.4689, w: 2.06, ax: 0.5, ay: 0.6 },
   'hat-s1-icecrown': { ratio: 0.8589, w: 0.6, ax: 0.5, ay: 0.95 },
+};
+
+/**
+ * Encuadre de cada ánimo respecto al neutral. Los ánimos de una etapa comparten encuadre,
+ * salvo la rana sabia, que en algunos ánimos está dibujada algo más grande: [escala, dx, dy]
+ * alrededor de `c`. Medido sobre la silueta (alfa) de las ilustraciones.
+ */
+export const MOOD_FRAME: Partial<Record<StageId, { c: [number, number] } & Partial<Record<'happy' | 'worried' | 'sad' | 'sleeping', [number, number, number]>>>> = {
+  sage: { c: [120, 148], happy: [1.0127, 0, -0.27], worried: [1.0294, -0.13, -0.54], sad: [1.0517, -0.13, -1.07], sleeping: [1.0191, 0, -0.27] },
+};
+
+/**
+ * Centro de cada ojo medido en las ilustraciones (ánimo neutral, por las pupilas). Solo
+ * para guías y calibración: el encaje por defecto sigue usando los anclajes de STAGE_ART.
+ */
+export const EYES_MEASURED: Record<StageId, { l: [number, number]; r: [number, number]; d: number }> = {
+  tadpole: { l: [90.9, 94.1], r: [149.5, 94.1], d: 30 },
+  froglet: { l: [88.6, 103.9], r: [151.2, 103.9], d: 28 },
+  young: { l: [88.0, 114.1], r: [152.5, 114.1], d: 30 },
+  adult: { l: [86.4, 96.3], r: [154.8, 96.3], d: 35 },
+  sage: { l: [89.3, 98.8], r: [151.3, 98.8], d: 32 },
 };

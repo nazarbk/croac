@@ -1,47 +1,20 @@
-import { useId } from 'react';
+import { Fragment, useId } from 'react';
 import type { Mood } from '../../domain/engine';
 import { stageForLevel, type StageId } from '../../domain/progression';
-import { CATALOG } from '../../domain/shop';
 import type { Slot } from '../../domain/types';
 import { cn } from '../../lib/cn';
-import { art, ITEM_ART, STAGE_ART, type AnchorTuple, type Rect } from './art';
+import { art, ITEM_ART, STAGE_ART, type ItemArt } from './art';
+import type { FitConfig } from './fit-schema';
+import { LayeredBody, LayeredDefs } from './LayeredBody';
+import { layoutFrog, type ItemLayout } from './layout';
+import { frogRenderMode, LAYERED_ART, SKIN_MODELS, spriteSkin } from './skins';
 
-/** Pieles con ilustraciones propias (las de las temporadas incluidas). */
-const SKINS = new Set(CATALOG.filter((i) => i.slot === 'skin').map((i) => i.id));
 const BACKGROUNDS = ['bg-pond', 'bg-sunset', 'bg-night', 'bg-rain', 'bg-space'];
 
 export const frogUrl = (stage: StageId, mood: Mood, skin?: string) =>
-  art(`frog/${skin && SKINS.has(skin) ? skin : 'skin-green'}/${stage}-${mood}.webp`);
+  art(`frog/${spriteSkin(skin)}/${stage}-${mood}.webp`);
 export const backgroundUrl = (id?: string) => art(`bg/${id && BACKGROUNDS.includes(id) ? id : 'bg-pond'}.webp`);
 export const itemUrl = (id: string) => art(`acc/${id}.webp`);
-
-/** Dónde se dibuja un complemento sobre la rana (en la caja de 240). */
-function itemRect(id: string, stage: StageId): Rect | null {
-  const item = ITEM_ART[id];
-  if (!item) return null;
-  const s = STAGE_ART[stage];
-  const slot = id.split('-')[0] as 'hat' | 'neck' | 'eyes';
-  let [x, y, ref]: AnchorTuple = s[slot];
-  if (item.center !== undefined) {
-    // Cascos y capuchas: centrados en la cara, no apoyados encima.
-    x = s.eyes[0];
-    y = s.eyes[1] + s.eyes[2] * item.center;
-  }
-  const w = ref * item.w;
-  const h = w * item.ratio;
-  x += (item.dx ?? 0) * s.eyes[2];
-  return { x: x - w * item.ax, y: y - h * item.ay, w, h };
-}
-
-/**
- * Capas para que los complementos parezcan puestos y no pegados encima:
- * - Cuello: el complemento se ve entero, apoyado justo bajo la barbilla. Si alguno lleva
- *   «tuck», la cabeza se pinta encima de su parte alta para esconderla bajo la barbilla.
- * - Sombreros: los ojos (que en las ranas están encima de la cabeza) se pintan encima del
- *   sombrero, que queda apoyado entre ellos.
- */
-const TUCK = 2.5; // unidades bajo el ancla del cuello
-const EYE_BUMP = 0.43; // radio del ojo respecto a la separación entre ojos
 
 /** La rana encima del nenúfar del fondo: los fondos tienen el nenúfar a ~84 % de alto. */
 const ON_PAD = 'translate(120 202) scale(.86) translate(-120 -228)';
@@ -59,23 +32,52 @@ export interface FrogProps {
   stageOverride?: StageId;
   /** Alinea la rana abajo cuando el contenedor no es cuadrado. */
   align?: 'center' | 'bottom';
+  /** Solo el probador: ajustes sin guardar en vez de los del proyecto. */
+  fit?: FitConfig;
+  /** Solo el probador: dibujos y direcciones de complementos que aún no están en el catálogo. */
+  itemArt?: Record<string, ItemArt>;
+  itemHref?: Record<string, string>;
 }
 
-export function Frog({ level, mood = 'neutral', equipped = {}, scene = false, hopKey = 0, className, title, stageOverride, align = 'center' }: FrogProps) {
+/**
+ * Capas, de atrás adelante:
+ *   complementos traseros → rana → complementos delanteros por orden (cuello, sombrero, gafas).
+ * La rana es la ilustración completa de la piel; si algún día una piel y su etapa tienen
+ * todos los recursos por capas (skins.ts), se compone por capas en el mismo sitio.
+ * Tras cada complemento se repinta, si hace falta, una parte de la rana encima:
+ * - Sombreros: los ojos (que en las ranas están encima de la cabeza), para que el sombrero
+ *   quede apoyado entre ellos. Los cascos y capuchas que rodean la cabeza no lo necesitan.
+ * - Cuello (opcional): la cabeza, para esconder la parte alta bajo la barbilla.
+ */
+export function Frog({
+  level, mood = 'neutral', equipped = {}, scene = false, hopKey = 0, className, title, stageOverride, align = 'center',
+  fit, itemArt, itemHref,
+}: FrogProps) {
   const uid = useId().replace(/:/g, '');
   const stage = stageOverride ?? stageForLevel(level).id;
-  const sa = STAGE_ART[stage];
-  const body = sa.rect;
+  const body = STAGE_ART[stage].rect;
   const src = frogUrl(stage, mood, equipped.skin);
-  const frogImg = (clip?: string) => <image href={src} x={body.x} y={body.y} width={body.w} height={body.h} clipPath={clip ? `url(#${clip})` : undefined} />;
-  const item = (id: string | undefined) => {
-    const r = id ? itemRect(id, stage) : null;
-    return r ? <image href={itemUrl(id!)} x={r.x} y={r.y} width={r.w} height={r.h} filter={`url(#${uid}-sh)`} /> : null;
-  };
-  const neck = equipped.neck;
-  const hat = equipped.hat;
-  const eyes = mood === 'sleeping' ? undefined : equipped.eyes;
-  const [ex, ey, span] = sa.eyes;
+  // Aritmética sobre datos ya medidos: nada de analizar imágenes al renderizar.
+  const layout = layoutFrog(
+    stage, mood,
+    [equipped.neck, equipped.hat, mood === 'sleeping' ? undefined : equipped.eyes],
+    fit, itemArt ? { ...ITEM_ART, ...itemArt } : ITEM_ART,
+  );
+  const all = [...layout.back, ...layout.front];
+  const needs = (o: ItemLayout['overlay']) => layout.front.some((l) => l.overlay === o);
+  // Ilustración completa (siempre, con los recursos actuales) o composición por capas.
+  const layered = frogRenderMode(stage, equipped.skin) === 'layered' ? LAYERED_ART[stage] : undefined;
+  const frogImg = (clip?: string) => layered
+    ? (
+      <g clipPath={clip ? `url(#${clip})` : undefined}>
+        <LayeredBody uid={uid} art={layered} skin={SKIN_MODELS[equipped.skin!]} mood={mood} rect={body} frame={layout.frame}
+          marks={SKIN_MODELS[equipped.skin!].marks?.[stage]} />
+      </g>
+    )
+    : <image href={src} x={body.x} y={body.y} width={body.w} height={body.h} clipPath={clip ? `url(#${clip})` : undefined} />;
+  const draw = (l: ItemLayout) => (
+    <ItemImage key={l.id} l={l} href={itemHref?.[l.id] ?? itemUrl(l.id)} uid={uid} />
+  );
 
   return (
     <svg
@@ -83,14 +85,16 @@ export function Frog({ level, mood = 'neutral', equipped = {}, scene = false, ho
       preserveAspectRatio={align === 'bottom' ? 'xMidYMax meet' : undefined}
     >
       <defs>
-        <filter id={`${uid}-sh`} x="-10%" y="-10%" width="120%" height="130%">
-          <feDropShadow dx="0" dy="1.2" stdDeviation="1" floodColor="#123b22" floodOpacity="0.28" />
-        </filter>
-        {neck && ITEM_ART[neck]?.tuck && <clipPath id={`${uid}-head`}><rect x="0" y="0" width="240" height={sa.neck[1] + TUCK} /></clipPath>}
-        {hat && !ITEM_ART[hat]?.noEyes && (
+        {layered && <LayeredDefs uid={uid} art={layered} mood={mood} rect={body} />}
+        {all.length > 0 && (
+          <filter id={`${uid}-sh`} x="-10%" y="-10%" width="120%" height="130%">
+            <feDropShadow dx="0" dy="1.2" stdDeviation="1" floodColor="#123b22" floodOpacity="0.28" />
+          </filter>
+        )}
+        {needs('head') && <clipPath id={`${uid}-head`}><rect x="0" y="0" width="240" height={layout.headClipY} /></clipPath>}
+        {needs('eyes') && (
           <clipPath id={`${uid}-eyes`}>
-            <circle cx={ex - span / 2} cy={ey} r={span * EYE_BUMP} />
-            <circle cx={ex + span / 2} cy={ey} r={span * EYE_BUMP} />
+            {layout.eyeClip.map((c, i) => <circle key={i} cx={c.cx} cy={c.cy} r={c.r} />)}
           </clipPath>
         )}
       </defs>
@@ -98,15 +102,47 @@ export function Frog({ level, mood = 'neutral', equipped = {}, scene = false, ho
       <g transform={scene ? ON_PAD : undefined}>
         <g key={hopKey} className={hopKey ? 'frog-hop' : undefined}>
           <g className="frog-idle">
+            {layout.back.map(draw)}
             {frogImg()}
-            {neck && <>{item(neck)}{ITEM_ART[neck]?.tuck && frogImg(`${uid}-head`)}</>}
-            {hat && <>{item(hat)}{!ITEM_ART[hat]?.noEyes && frogImg(`${uid}-eyes`)}</>}
-            {/* Las gafas siempre por delante de todo, también del sombrero. */}
-            {item(eyes)}
+            {layout.front.map((l) => (
+              <Fragment key={l.id}>
+                {draw(l)}
+                {l.overlay !== 'none' && frogImg(`${uid}-${l.overlay}`)}
+              </Fragment>
+            ))}
           </g>
         </g>
       </g>
     </svg>
+  );
+}
+
+/** Un complemento. Las gafas con `split` se dibujan en tres trozos del mismo archivo. */
+function ItemImage({ l, href, uid }: { l: ItemLayout; href: string; uid: string }) {
+  const { img } = l;
+  const transform = l.rotate ? `rotate(${l.rotate} ${l.pivot[0]} ${l.pivot[1]})` : undefined;
+  const image = (clip?: string, t?: string) => (
+    <image href={href} x={img.x} y={img.y} width={img.w} height={img.h}
+      clipPath={clip ? `url(#${clip})` : undefined} transform={t} />
+  );
+  if (!l.split) return <g transform={transform} filter={`url(#${uid}-sh)`}>{image()}</g>;
+  // Lentes enteras desplazadas (sin deformarlas) y el puente estirado entre ellas.
+  const { l: xl, r: xr, spread } = l.split;
+  const id = `${uid}-${l.id}`;
+  const half = spread / 2;
+  const bw = xr - xl;
+  const cx = (xl + xr) / 2;
+  const top = img.y - 1;
+  const hh = img.h + 2;
+  return (
+    <g transform={transform} filter={`url(#${uid}-sh)`}>
+      <clipPath id={`${id}-l`}><rect x={img.x - 1} y={top} width={xl - img.x + 1} height={hh} /></clipPath>
+      <clipPath id={`${id}-r`}><rect x={xr} y={top} width={img.x + img.w - xr + 1} height={hh} /></clipPath>
+      {bw > 0.5 && <clipPath id={`${id}-b`}><rect x={xl - 0.2} y={top} width={bw + 0.4} height={hh} /></clipPath>}
+      {bw > 0.5 && image(`${id}-b`, `translate(${cx} 0) scale(${(bw + spread) / bw} 1) translate(${-cx} 0)`)}
+      {image(`${id}-l`, `translate(${-half} 0)`)}
+      {image(`${id}-r`, `translate(${half} 0)`)}
+    </g>
   );
 }
 

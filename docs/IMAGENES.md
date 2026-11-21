@@ -6,8 +6,8 @@ Desde la v1.0 la app usa ilustraciones en lugar de los dibujos SVG hechos en có
 
 | Carpeta | Contenido | Tamaño máx. |
 |---|---|---|
-| `public/art/frog/<piel>/<etapa>-<ánimo>.webp` | La rana: 5 pieles × 5 etapas × 5 ánimos = 125 imágenes | 720 px |
-| `public/art/acc/<id>.webp` | 19 complementos (9 sombreros, 6 de cuello, 4 gafas) | 480 px |
+| `public/art/frog/<piel>/<etapa>-<ánimo>.webp` | La rana: 7 pieles × 5 etapas × 5 ánimos = 175 imágenes (la cara va dentro de cada una) | 720 px de alto |
+| `public/art/acc/<id>.webp` | 25 complementos (11 de cabeza, 8 de cuello, 6 gafas), recortados a su parte visible | 480 px |
 | `public/art/bg/<id>.webp` | 5 fondos de la escena de la rana | 1254 px |
 | `public/art/pond/{day,night}-{square,wide}.webp` | La charca de amigos: de día / de noche, para móvil / escritorio | 1600 px |
 | `public/art/ui/*.webp` | Moneda, gota de XP, trofeo e ilustraciones de estados vacíos | 128–480 px |
@@ -20,10 +20,17 @@ Desde la v1.0 la app usa ilustraciones en lugar de los dibujos SVG hechos en có
 
 ## Cómo encajan los complementos
 
-Todas las ranas de una misma etapa comparten encuadre, así que cada complemento se coloca con unos puntos de anclaje por etapa (cabeza, ojos y cuello) y unos ajustes por artículo (tamaño y punto de apoyo). Están en `src/components/frog/art.ts`:
+Todas las ranas de una misma etapa comparten encuadre, así que cada complemento se coloca con unos puntos de anclaje por etapa y, encima, unos ajustes finos por complemento y etapa. Todo en unidades de la caja de 240 × 240 de la rana (el `viewBox`), nunca en píxeles: se ve igual a cualquier tamaño.
 
-- `STAGE_ART[etapa]`: dónde se dibuja la rana en una caja de 240 × 240 y los anclajes `hat`, `eyes`, `neck` como `[x, y, ancho de referencia]`.
-- `ITEM_ART[id]`: `w` (ancho relativo), `ax`/`ay` (qué punto del dibujo cae en el ancla), `dx` (desplazamiento, p. ej. el monóculo en un ojo) y `center` (el casco va centrado en la cabeza).
+1. **Anclajes y dibujo base** (`src/components/frog/art.ts`, valores por defecto):
+   - `STAGE_ART[etapa]`: dónde se dibuja la rana y los anclajes `hat`, `eyes`, `neck` como `[x, y, ancho de referencia]`.
+   - `ITEM_ART[id]`: `ratio` (alto/ancho de la parte visible), `w` (ancho relativo), `ax`/`ay` (**punto de apoyo**: qué punto del dibujo cae en el ancla), `dx`, `center` (cascos y capuchas centrados en la cara), `noEyes`, `tuck` y `bounds` (parte visible del archivo según su canal alfa; sin él se asume que el archivo ya está recortado, como todos los actuales).
+   - `MOOD_FRAME`: la rana sabia está dibujada algo más grande en algunos ánimos (hasta un 5 % triste); los complementos la siguen.
+   - `EYES_MEASURED`: centro de cada ojo medido en las ilustraciones (guía del probador).
+2. **Ajustes por complemento y etapa** (`src/components/frog/accessory-fit.json`): desplazamiento `x`/`y`, `scale` (alrededor del punto de apoyo), `rotate` y `pivot`, orden `z`, `layer` (`front` o `back`, detrás de la rana), `overlay` (qué parte de la rana se repinta encima: `eyes` para sombreros entre los ojos, `head` para meter un colgante o bufanda bajo la barbilla) y, en gafas, `split` + `spread` (separar lentes sin deformarlas; solo se estira el puente). Un complemento sin ajustes se dibuja con los valores por defecto.
+3. **Cálculo** (`src/components/frog/layout.ts`): funciones puras, sin analizar imágenes; las usa el componente `Frog` en todas las pantallas (tienda, perfil, charca, amigos, revisión diaria…) y el probador.
+
+Los ajustes se editan con el **probador** (`#/dev/wardrobe`, solo en desarrollo): ver `docs/PROBADOR.md`.
 
 Las gafas se ocultan cuando la rana duerme.
 
@@ -38,7 +45,8 @@ Temporada 1 «Hora de aventuras» (originales en `design/originales/temporada-1/
 1. Mantén el **mismo encuadre** que la imagen que sustituyes (misma pose y tamaño en el lienzo), o habrá que reajustar los anclajes.
 2. Exporta en WebP (calidad ~80) con el mismo nombre en `public/art/...`.
 3. Sube `ART_VERSION` en `src/components/frog/art.ts` para que los móviles no usen la versión en caché.
-4. Para un complemento nuevo: añádelo al catálogo (`src/domain/shop.ts`), su imagen en `public/art/acc/` y su entrada en `ITEM_ART`.
+4. Para un complemento nuevo: pruébalo antes en el probador con su PNG (`docs/PROBADOR.md`); luego añádelo al catálogo (`src/domain/shop.ts`), su imagen en `public/art/acc/`, la línea de `ITEM_ART` que te da el probador y sus ajustes (`npm run fit:apply`).
+5. Pieles nuevas por capas (sin dibujar 25 ilustraciones): ver `docs/PIELES.md`.
 
 ## Origen de cada imagen
 

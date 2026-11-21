@@ -10,6 +10,8 @@ export type RouteName = 'hoy' | 'proximo' | 'tareas' | 'historial' | 'rana' | 'c
 export interface Route {
   name: RouteName;
   params: URLSearchParams;
+  /** Ruta tal cual (p. ej. "dev/wardrobe"); las desconocidas caen en «hoy». */
+  path: string;
 }
 
 const ROUTES: RouteName[] = ['hoy', 'proximo', 'tareas', 'historial', 'rana', 'charca', 'amigos', 'tienda', 'estadisticas', 'ajustes', 'novedades'];
@@ -18,7 +20,7 @@ function parse(hash: string): Route {
   const clean = hash.replace(/^#\/?/, '');
   const [path, query = ''] = clean.split('?');
   const name = (ROUTES.includes(path as RouteName) ? path : 'hoy') as RouteName;
-  return { name, params: new URLSearchParams(query) };
+  return { name, params: new URLSearchParams(query), path };
 }
 
 const routeStore = createStore<Route>(parse(typeof location !== 'undefined' ? location.hash : ''));

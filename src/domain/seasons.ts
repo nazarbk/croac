@@ -6,7 +6,8 @@ import type { ShopItem } from './shop';
  * puede comprar mientras dure. Lo que compres es tuyo para siempre.
  *
  * Para lanzar una temporada nueva:
- *   1. Añade sus imágenes a public/art/acc/ (y su encaje en components/frog/art.ts).
+ *   1. Añade sus imágenes a public/art/acc/ (su encaje base en components/frog/art.ts y, si
+ *      hace falta, ajustes por etapa con el probador #/dev/wardrobe: docs/PROBADOR.md).
  *   2. Añade un objeto al final de SEASONS con fechas que no se solapen.
  *   3. Añade una entrada en content/changelog.ts para que salga en Novedades.
  *
