@@ -5,14 +5,12 @@ import type { Slot } from '../../domain/types';
 import { cn } from '../../lib/cn';
 import { art, ITEM_ART, STAGE_ART, type ItemArt } from './art';
 import type { FitConfig } from './fit-schema';
-import { LayeredBody, LayeredDefs } from './LayeredBody';
+import { useActiveFit } from './fitStore';
 import { layoutFrog, type ItemLayout } from './layout';
-import { frogRenderMode, LAYERED_ART, SKIN_MODELS, spriteSkin } from './skins';
+import { bodyUrl, faceUrl } from './skins';
 
-const BACKGROUNDS = ['bg-pond', 'bg-sunset', 'bg-night', 'bg-rain', 'bg-space'];
+const BACKGROUNDS = ['bg-pond', 'bg-sunset', 'bg-night', 'bg-rain', 'bg-space', 'bg-s1-candy', 'bg-s1-treehouse'];
 
-export const frogUrl = (stage: StageId, mood: Mood, skin?: string) =>
-  art(`frog/${spriteSkin(skin)}/${stage}-${mood}.webp`);
 export const backgroundUrl = (id?: string) => art(`bg/${id && BACKGROUNDS.includes(id) ? id : 'bg-pond'}.webp`);
 export const itemUrl = (id: string) => art(`acc/${id}.webp`);
 
@@ -32,7 +30,7 @@ export interface FrogProps {
   stageOverride?: StageId;
   /** Alinea la rana abajo cuando el contenedor no es cuadrado. */
   align?: 'center' | 'bottom';
-  /** Solo el probador: ajustes sin guardar en vez de los del proyecto. */
+  /** Solo el probador: ajustes sin guardar en vez de los de la app. */
   fit?: FitConfig;
   /** Solo el probador: dibujos y direcciones de complementos que aún no están en el catálogo. */
   itemArt?: Record<string, ItemArt>;
@@ -41,9 +39,8 @@ export interface FrogProps {
 
 /**
  * Capas, de atrás adelante:
- *   complementos traseros → rana → complementos delanteros por orden (cuello, sombrero, gafas).
- * La rana es la ilustración completa de la piel; si algún día una piel y su etapa tienen
- * todos los recursos por capas (skins.ts), se compone por capas en el mismo sitio.
+ *   complementos traseros → cuerpo de la etapa → expresión → complementos delanteros
+ *   (cuello, sombrero, gafas).
  * Tras cada complemento se repinta, si hace falta, una parte de la rana encima:
  * - Sombreros: los ojos (que en las ranas están encima de la cabeza), para que el sombrero
  *   quede apoyado entre ellos. Los cascos y capuchas que rodean la cabeza no lo necesitan.
@@ -54,27 +51,25 @@ export function Frog({
   fit, itemArt, itemHref,
 }: FrogProps) {
   const uid = useId().replace(/:/g, '');
+  const active = useActiveFit();
   const stage = stageOverride ?? stageForLevel(level).id;
   const body = STAGE_ART[stage].rect;
-  const src = frogUrl(stage, mood, equipped.skin);
   // Aritmética sobre datos ya medidos: nada de analizar imágenes al renderizar.
   const layout = layoutFrog(
-    stage, mood,
+    stage,
     [equipped.neck, equipped.hat, mood === 'sleeping' ? undefined : equipped.eyes],
-    fit, itemArt ? { ...ITEM_ART, ...itemArt } : ITEM_ART,
+    fit ?? active, itemArt ? { ...ITEM_ART, ...itemArt } : ITEM_ART,
   );
+  const { face } = layout;
   const all = [...layout.back, ...layout.front];
   const needs = (o: ItemLayout['overlay']) => layout.front.some((l) => l.overlay === o);
-  // Ilustración completa (siempre, con los recursos actuales) o composición por capas.
-  const layered = frogRenderMode(stage, equipped.skin) === 'layered' ? LAYERED_ART[stage] : undefined;
-  const frogImg = (clip?: string) => layered
-    ? (
-      <g clipPath={clip ? `url(#${clip})` : undefined}>
-        <LayeredBody uid={uid} art={layered} skin={SKIN_MODELS[equipped.skin!]} mood={mood} rect={body} frame={layout.frame}
-          marks={SKIN_MODELS[equipped.skin!].marks?.[stage]} />
-      </g>
-    )
-    : <image href={src} x={body.x} y={body.y} width={body.w} height={body.h} clipPath={clip ? `url(#${clip})` : undefined} />;
+  const frogImg = (clip?: string) => (
+    <g clipPath={clip ? `url(#${clip})` : undefined}>
+      <image href={bodyUrl(stage, equipped.skin)} x={body.x} y={body.y} width={body.w} height={body.h} />
+      <image href={faceUrl(mood)} x={face.img.x} y={face.img.y} width={face.img.w} height={face.img.h}
+        transform={face.rotate ? `rotate(${face.rotate} ${face.pivot[0]} ${face.pivot[1]})` : undefined} />
+    </g>
+  );
   const draw = (l: ItemLayout) => (
     <ItemImage key={l.id} l={l} href={itemHref?.[l.id] ?? itemUrl(l.id)} uid={uid} />
   );
@@ -85,7 +80,6 @@ export function Frog({
       preserveAspectRatio={align === 'bottom' ? 'xMidYMax meet' : undefined}
     >
       <defs>
-        {layered && <LayeredDefs uid={uid} art={layered} mood={mood} rect={body} />}
         {all.length > 0 && (
           <filter id={`${uid}-sh`} x="-10%" y="-10%" width="120%" height="130%">
             <feDropShadow dx="0" dy="1.2" stdDeviation="1" floodColor="#123b22" floodOpacity="0.28" />

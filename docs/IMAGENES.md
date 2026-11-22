@@ -6,31 +6,32 @@ Desde la v1.0 la app usa ilustraciones en lugar de los dibujos SVG hechos en có
 
 | Carpeta | Contenido | Tamaño máx. |
 |---|---|---|
-| `public/art/frog/<piel>/<etapa>-<ánimo>.webp` | La rana: 7 pieles × 5 etapas × 5 ánimos = 175 imágenes (la cara va dentro de cada una) | 720 px de alto |
+| `public/art/frog/body/<etapa>.webp` | Cuerpo de la rana sin cara, uno por etapa (5) | 720 px de alto |
+| `public/art/frog/face/<ánimo>.webp` | Expresiones, una por ánimo (5), comunes a las cinco etapas. Lienzo 940 × 540 con la nariz en el centro | 564 × 324 px |
 | `public/art/acc/<id>.webp` | 25 complementos (11 de cabeza, 8 de cuello, 6 gafas), recortados a su parte visible | 480 px |
-| `public/art/bg/<id>.webp` | 5 fondos de la escena de la rana | 1254 px |
+| `public/art/bg/<id>.webp` | 7 fondos de la escena de la rana (2 de la Temporada 1) | 1254 px |
+| `public/art/season/<id>-banner.webp` | Cartel de cada temporada en la tienda (~4:1) | 1024 px |
 | `public/art/pond/{day,night}-{square,wide}.webp` | La charca de amigos: de día / de noche, para móvil / escritorio | 1600 px |
 | `public/art/ui/*.webp` | Moneda, gota de XP, trofeo e ilustraciones de estados vacíos | 128–480 px |
 | `public/icons/`, `public/favicon*`, `public/splash/`, `public/og.jpg` | Icono de la app, favicon, pantallas de arranque de iPhone e imagen al compartir el enlace | — |
 
 - **Etapas** (`stage`): `tadpole` (renacuajo, nivel 1), `froglet` (con patas, 5), `young` (ranita, 10), `adult` (rana, 20), `sage` (rana sabia, 35).
 - **Ánimos** (`mood`): `neutral`, `happy` (día perfecto), `worried` (tareas de ayer sin hacer), `sad` (perdiendo XP), `sleeping` (modo vacaciones).
-- **Pieles**: `skin-green`, `skin-blue`, `skin-pink`, `skin-gold`, `skin-midnight`. Solo había arte de cada piel en la rana adulta neutral; el resto se generó recoloreando la rana verde (manteniendo ojos, mejillas, contorno y la barba de la rana sabia).
-- La **rana adulta neutral verde** no venía en el lote: se obtuvo recoloreando la rosa.
+- **La rana por capas**: cuerpo de la etapa + expresión del ánimo + complementos. Una expresión nueva es una sola imagen (sirve para las cinco etapas); se prepara con `python scripts/art/frog_layers.py face <ánimo> imagen.png` y se coloca por etapa con `STAGE_ART[etapa].face` (o el ajuste «Cara» del probador). Ver `docs/PIELES.md`.
+- **Pieles de color**: ocultas por ahora (las ranas se dibujan todas con el cuerpo verde). Quien las compró las conserva.
 
 ## Cómo encajan los complementos
 
-Todas las ranas de una misma etapa comparten encuadre, así que cada complemento se coloca con unos puntos de anclaje por etapa y, encima, unos ajustes finos por complemento y etapa. Todo en unidades de la caja de 240 × 240 de la rana (el `viewBox`), nunca en píxeles: se ve igual a cualquier tamaño.
+El cuerpo de cada etapa es el mismo en todos los ánimos, así que cada complemento se coloca con unos puntos de anclaje por etapa y, encima, unos ajustes finos por complemento y etapa. Todo en unidades de la caja de 240 × 240 de la rana (el `viewBox`), nunca en píxeles: se ve igual a cualquier tamaño.
 
 1. **Anclajes y dibujo base** (`src/components/frog/art.ts`, valores por defecto):
-   - `STAGE_ART[etapa]`: dónde se dibuja la rana y los anclajes `hat`, `eyes`, `neck` como `[x, y, ancho de referencia]`.
+   - `STAGE_ART[etapa]`: dónde se dibuja el cuerpo (`rect`), dónde va la cara (`face`: nariz y ancho) y los anclajes `hat`, `eyes`, `neck` como `[x, y, ancho de referencia]`.
    - `ITEM_ART[id]`: `ratio` (alto/ancho de la parte visible), `w` (ancho relativo), `ax`/`ay` (**punto de apoyo**: qué punto del dibujo cae en el ancla), `dx`, `center` (cascos y capuchas centrados en la cara), `noEyes`, `tuck` y `bounds` (parte visible del archivo según su canal alfa; sin él se asume que el archivo ya está recortado, como todos los actuales).
-   - `MOOD_FRAME`: la rana sabia está dibujada algo más grande en algunos ánimos (hasta un 5 % triste); los complementos la siguen.
-   - `EYES_MEASURED`: centro de cada ojo medido en las ilustraciones (guía del probador).
+   - `FACE_EYES`: dónde están los ojos dentro del lienzo de las caras (para la guía del probador y para pintar los ojos por encima de los sombreros).
 2. **Ajustes por complemento y etapa** (`src/components/frog/accessory-fit.json`): desplazamiento `x`/`y`, `scale` (alrededor del punto de apoyo), `rotate` y `pivot`, orden `z`, `layer` (`front` o `back`, detrás de la rana), `overlay` (qué parte de la rana se repinta encima: `eyes` para sombreros entre los ojos, `head` para meter un colgante o bufanda bajo la barbilla) y, en gafas, `split` + `spread` (separar lentes sin deformarlas; solo se estira el puente). Un complemento sin ajustes se dibuja con los valores por defecto.
 3. **Cálculo** (`src/components/frog/layout.ts`): funciones puras, sin analizar imágenes; las usa el componente `Frog` en todas las pantallas (tienda, perfil, charca, amigos, revisión diaria…) y el probador.
 
-Los ajustes se editan con el **probador** (`#/dev/wardrobe`, solo en desarrollo): ver `docs/PROBADOR.md`.
+Los ajustes se editan con el **probador** (`#/admin/probador`, solo administradores o `npm run dev`): ver `docs/PROBADOR.md`. Lo que un administrador publica desde ahí manda sobre `accessory-fit.json` sin desplegar.
 
 Las gafas se ocultan cuando la rana duerme.
 

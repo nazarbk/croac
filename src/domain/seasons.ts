@@ -23,8 +23,10 @@ export interface Season {
   /** Primer y último día (incluidos) en que se puede comprar. */
   start: DateStr;
   end: DateStr;
-  /** Dos colores para el degradado del cartel de la temporada. */
+  /** Dos colores para el degradado del cartel de la temporada (si no tiene ilustración). */
   colors: [string, string];
+  /** Ilustración del cartel (ruta dentro de public/art/), apaisada ~4:1. */
+  banner?: string;
   items: ShopItem[];
 }
 
@@ -37,6 +39,7 @@ export const SEASONS: Season[] = [
     start: '2026-11-19',
     end: '2026-11-25',
     colors: ['#38bdf8', '#fbbf24'],
+    banner: 'season/s1-banner.webp',
     // Los 3 más baratos suman 180: lo que se gana en una semana haciendo tareas a diario.
     items: [
       { id: 'neck-s1-scarf', slot: 'neck', name: 'Bufanda perruna', price: 55, minLevel: 1, season: 's1', description: 'Amarilla, elástica y muy leal.' },
@@ -45,6 +48,8 @@ export const SEASONS: Season[] = [
       { id: 'eyes-s1-cloud', slot: 'eyes', name: 'Gafas de nube', price: 70, minLevel: 1, season: 's1', description: 'Moradas, abultadas y con mucha actitud.' },
       { id: 'neck-s1-axe', slot: 'neck', name: 'Colgante bajo-hacha', price: 80, minLevel: 1, season: 's1', description: 'Para tocar baladas a medianoche.' },
       { id: 'hat-s1-icecrown', slot: 'hat', name: 'Corona helada', price: 90, minLevel: 1, season: 's1', description: 'Da poderes de hielo. Y ganas de cantar.' },
+      { id: 'bg-s1-treehouse', slot: 'background', name: 'Casa del árbol', price: 110, minLevel: 1, season: 's1', description: 'Una charca con vistas al mejor fuerte del mundo.' },
+      { id: 'bg-s1-candy', slot: 'background', name: 'Reino de caramelo', price: 120, minLevel: 1, season: 's1', description: 'Nenúfares junto a un castillo de golosinas.' },
       // Pieles ocultas hasta revisar su diseño: quita "hidden: true" para sacarlas a la tienda.
       { id: 'skin-s1-jake', slot: 'skin', name: 'Piel perruna', price: 150, minLevel: 1, season: 's1', hidden: true, description: 'Dorada y lista para cualquier misión.' },
       { id: 'skin-s1-bmo', slot: 'skin', name: 'Piel consola', price: 150, minLevel: 1, season: 's1', hidden: true, description: '¿Alguien quiere jugar? De adulta le salen botones.' },

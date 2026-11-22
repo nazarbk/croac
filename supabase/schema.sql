@@ -149,3 +149,43 @@ grant usage on schema public to anon, authenticated;
 grant select, insert, update on public.profiles to authenticated;
 grant select, update, delete on public.friendships to authenticated;
 grant select, insert, update, delete on public.user_state to authenticated;
+
+-- ---------- Administración (probador de complementos) ----------
+-- Quién es administrador. Sin políticas ni permisos para la API: solo se puede cambiar desde
+-- el panel de Supabase (SQL Editor). Para hacerte administrador:
+--   insert into public.admins (user_id)
+--   select id from auth.users where email = 'tu@correo.com';
+create table if not exists public.admins (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+alter table public.admins enable row level security;
+revoke all on public.admins from anon, authenticated;
+
+-- ¿Soy administrador? (solo responde por la sesión que llama)
+create or replace function public.is_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.admins where user_id = auth.uid());
+$$;
+revoke all on function public.is_admin() from public, anon;
+grant execute on function public.is_admin() to authenticated;
+
+-- Configuración pública de la app (p. ej. «accessory-fit»: ajustes de los complementos).
+-- La lee cualquiera; solo la escriben los administradores.
+create table if not exists public.app_config (
+  key text primary key check (key ~ '^[a-z0-9-]{1,40}$'),
+  value jsonb not null check (pg_column_size(value) < 262144),
+  updated_at timestamptz not null default now(),
+  updated_by uuid default auth.uid() references auth.users(id) on delete set null
+);
+alter table public.app_config enable row level security;
+drop policy if exists "config pública" on public.app_config;
+create policy "config pública" on public.app_config for select to anon, authenticated using (true);
+drop policy if exists "config: crear (admins)" on public.app_config;
+create policy "config: crear (admins)" on public.app_config for insert to authenticated with check (public.is_admin());
+drop policy if exists "config: cambiar (admins)" on public.app_config;
+create policy "config: cambiar (admins)" on public.app_config for update to authenticated using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "config: borrar (admins)" on public.app_config;
+create policy "config: borrar (admins)" on public.app_config for delete to authenticated using (public.is_admin());
+grant select on public.app_config to anon, authenticated;
+grant insert, update, delete on public.app_config to authenticated;

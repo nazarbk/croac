@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Frog } from '../components/frog/Frog';
+import { art } from '../components/frog/art';
 import { Button } from '../components/ui/Button';
 import { Segmented } from '../components/ui/controls';
 import { Coin, Icon } from '../components/ui/Icon';
@@ -78,6 +79,16 @@ function ItemCard({ item }: { item: ShopItem }) {
   );
 }
 
+function SeasonCountdown({ left }: { left: number }) {
+  return (
+    <div className="shrink-0 rounded-xl bg-black/30 backdrop-blur-sm px-3 py-2 text-center leading-tight text-white">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-white/85">{left <= 1 ? 'Último día' : 'Quedan'}</div>
+      {left > 1 && <div className="font-display text-xl font-extrabold tabular-nums">{left} días</div>}
+      {left <= 1 && <div className="font-display text-base font-extrabold">¡Hoy acaba!</div>}
+    </div>
+  );
+}
+
 function SeasonBanner({ season }: { season: Season }) {
   const today = useToday();
   const left = daysLeft(season, today);
@@ -86,24 +97,41 @@ function SeasonBanner({ season }: { season: Season }) {
   const got = items.filter((i) => owned.includes(i.id)).length;
   return (
     <section className="mt-5 rounded-[1.75rem] border border-line bg-surface shadow-card overflow-hidden">
-      <div className="relative px-5 pt-5 pb-4 text-white" style={{ background: `linear-gradient(120deg, ${season.colors[0]}, ${season.colors[1]})` }}>
-        <div className="absolute inset-0 bg-black/15" aria-hidden />
-        <div className="relative flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <span className="inline-block text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/25 backdrop-blur-sm">Temporada {season.number}</span>
-            <h2 className="font-display text-2xl sm:text-[1.75rem] font-extrabold leading-tight mt-1.5 drop-shadow-sm">{season.name}</h2>
-            <p className="text-white/90 text-[15px] mt-1 leading-snug max-w-md">{season.tagline}</p>
+      {season.banner ? (
+        <div className="relative text-white bg-[#1c2b3f] sm:min-h-[13rem] sm:flex sm:flex-col sm:justify-end">
+          {/* Móvil: la ilustración arriba y el texto debajo. Desde sm: el texto encima, a la izquierda. */}
+          <div className="relative h-36 sm:absolute sm:inset-0 sm:h-auto overflow-hidden">
+            <img src={art(season.banner)} alt="" className="absolute inset-0 w-full h-full object-cover object-[62%_center]" />
+            <div className="hidden sm:block absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" aria-hidden />
+            <div className="sm:hidden absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#1c2b3f] to-transparent" aria-hidden />
           </div>
-          <div className="shrink-0 rounded-xl bg-white/20 backdrop-blur-sm px-3 py-2 text-center leading-tight">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-white/85">{left <= 1 ? 'Último día' : 'Quedan'}</div>
-            {left > 1 && <div className="font-display text-xl font-extrabold tabular-nums">{left} días</div>}
-            {left <= 1 && <div className="font-display text-base font-extrabold">¡Hoy acaba!</div>}
+          <div className="relative px-5 pb-4 pt-1 sm:pt-14 sm:max-w-[55%]">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="inline-block text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/20 backdrop-blur-sm">Temporada {season.number}</span>
+              <span className="inline-block text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-coin text-ink">
+                {left <= 1 ? '¡Último día!' : `Quedan ${left} días`}
+              </span>
+            </div>
+            <h2 className="font-display text-2xl sm:text-[1.75rem] font-extrabold leading-tight mt-1.5 [text-shadow:0_2px_8px_rgb(0_0_0/.5)]">{season.name}</h2>
+            <p className="text-white/90 text-[15px] mt-1 leading-snug [text-shadow:0_1px_4px_rgb(0_0_0/.6)]">{season.tagline}</p>
           </div>
         </div>
-        <p className="relative mt-3 text-[13px] text-white/90">
-          Hasta el {formatLong(season.end)} · {got}/{items.length} conseguidos · lo que compres es tuyo para siempre
-        </p>
-      </div>
+      ) : (
+        <div className="relative px-5 pt-5 pb-4 text-white" style={{ background: `linear-gradient(120deg, ${season.colors[0]}, ${season.colors[1]})` }}>
+          <div className="absolute inset-0 bg-black/15" aria-hidden />
+          <div className="relative flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <span className="inline-block text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/25 backdrop-blur-sm">Temporada {season.number}</span>
+              <h2 className="font-display text-2xl sm:text-[1.75rem] font-extrabold leading-tight mt-1.5 drop-shadow-sm">{season.name}</h2>
+              <p className="text-white/90 text-[15px] mt-1 leading-snug max-w-md">{season.tagline}</p>
+            </div>
+            <SeasonCountdown left={left} />
+          </div>
+        </div>
+      )}
+      <p className="px-5 pt-3 text-[13px] text-muted">
+        Hasta el {formatLong(season.end)} · {got}/{items.length} conseguidos · lo que compres es tuyo para siempre
+      </p>
       <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
         {items.map((i) => <ItemCard key={i.id} item={i} />)}
       </div>
@@ -118,9 +146,11 @@ export function ShopPage() {
   const today = useToday();
   const season = currentSeason(today);
   // Los de la temporada actual van en su cartel; los de temporadas pasadas, solo si ya son tuyos.
-  const items = CATALOG
-    .filter((i) => i.slot === slot && i.price > 0 && !i.hidden && (!i.season || (owned.includes(i.id) && i.season !== season?.id)))
-    .sort((a, b) => a.minLevel - b.minLevel || a.price - b.price);
+  const regular = CATALOG.filter((i) => i.price > 0 && !i.hidden && (!i.season || (owned.includes(i.id) && i.season !== season?.id)));
+  // Solo las pestañas con algo que enseñar (p. ej. no hay pieles a la venta ahora mismo).
+  const slots = SLOTS.filter((s) => regular.some((i) => i.slot === s.id));
+  const current = slots.some((s) => s.id === slot) ? slot : (slots[0]?.id ?? 'hat');
+  const items = regular.filter((i) => i.slot === current).sort((a, b) => a.minLevel - b.minLevel || a.price - b.price);
   return (
     <div>
       <header className="flex items-end justify-between gap-3">
@@ -133,7 +163,7 @@ export function ShopPage() {
       {season && <SeasonBanner season={season} />}
       {season && <h2 className="font-display text-lg font-bold px-1 mt-8">Siempre disponible</h2>}
       <div className={cn('-mx-4 px-4 overflow-x-auto scrollbar-none', season ? 'mt-3' : 'mt-5')}>
-        <Segmented<Slot> value={slot} onChange={setSlot} options={SLOTS.map((s) => ({ value: s.id, label: s.plural }))} />
+        <Segmented<Slot> value={current} onChange={setSlot} options={slots.map((s) => ({ value: s.id, label: s.plural }))} />
       </div>
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
         {items.map((i) => <ItemCard key={i.id} item={i} />)}

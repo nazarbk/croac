@@ -18,7 +18,7 @@ Referencias de producto: Todoist (entrada rápida, vistas Hoy/Próximo, priorida
 | Estado | Store propio tipo Zustand (`src/store/createStore.ts`) sobre `useSyncExternalStore` |
 | Router | Propio, por hash (`#/hoy`), sin dependencias (`src/lib/router.ts`) |
 | Iconos | SVG propios estilo Lucide (`src/components/ui/Icon.tsx`) |
-| Gráficos de la rana | Ilustraciones WebP en `public/art/` colocadas con anclajes (`src/components/frog/art.ts`) y ajustes por complemento y etapa (`accessory-fit.json`, editables con el probador `#/dev/wardrobe` en desarrollo) |
+| Gráficos de la rana | Por capas: cuerpo por etapa + expresión común + complementos (WebP en `public/art/`), colocados con anclajes (`src/components/frog/art.ts`) y ajustes por complemento y etapa (`accessory-fit.json` o publicados por un administrador desde el probador `#/admin/probador`) |
 | Persistencia local | `localStorage` con versión y migraciones (`src/store/persistence.ts`) |
 | Backend (opcional) | Supabase: Auth + PostgREST vía `fetch`, sin SDK (`src/services/`), esquema en `supabase/schema.sql` |
 | Tests | Vitest (lógica de dominio, 38 tests) |
@@ -75,7 +75,7 @@ croac/
     ├── features/               Revisión diaria, bienvenida, celebraciones, recordatorios, atajos, repetir tareas,
     │                           instalación PWA, cuenta (login, conflicto de sincronización), ErrorBoundary
     ├── pages/                  Hoy, Próximo, Tareas, Historial, Rana, Charca, Amigos, Tienda, Estadísticas, Ajustes
-    └── dev/wardrobe/           Probador de complementos (solo en desarrollo, no entra en el build)
+    └── dev/wardrobe/           Probador de complementos (administradores o npm run dev; se carga aparte)
 ```
 
 ## 4. Modelo de datos (resumen)

@@ -3,7 +3,7 @@
  * Formato y validación de los ajustes de complementos (accessory-fit.json).
  *
  * Está en JavaScript sin dependencias para poder usarlo igual desde la app, desde el
- * probador (/#/dev/wardrobe), desde el servidor de desarrollo de Vite y desde
+ * probador (#/admin/probador), desde el servidor de desarrollo de Vite y desde
  * `npm run fit:apply`. Los tipos están en fit-schema.d.ts.
  *
  * Unidades: x, y y spread en unidades de la caja de 240 × 240 de la rana (el viewBox),
@@ -15,7 +15,7 @@ export const FIT_VERSION = 1;
 export const FIT_STAGES = ['tadpole', 'froglet', 'young', 'adult', 'sage'];
 export const FIT_LAYERS = ['front', 'back'];
 export const FIT_OVERLAYS = ['auto', 'none', 'eyes', 'head'];
-export const ITEM_ID = /^(hat|neck|eyes)-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const ITEM_ID = /^(?:face|(?:hat|neck|eyes)-[a-z0-9]+(?:-[a-z0-9]+)*)$/;
 
 /** Límites de cada campo: lo que se salga se rechaza (protege de JSON corruptos o absurdos). */
 export const FIT_LIMITS = {
@@ -83,7 +83,7 @@ export function validateFit(input, opts = {}) {
   const known = opts.knownIds ? new Set(opts.knownIds) : null;
   for (const [id, item] of Object.entries(input.items)) {
     const w = `items["${id}"]`;
-    if (!ITEM_ID.test(id)) { errors.push(`${w}: id no válido (hat-…, neck-… o eyes-…)`); continue; }
+    if (!ITEM_ID.test(id)) { errors.push(`${w}: id no válido (face, hat-…, neck-… o eyes-…)`); continue; }
     if (known && !known.has(id)) warnings.push(`${id}: no está en el catálogo (se guardará, pero no se usará hasta que exista)`);
     if (!isObj(item)) { errors.push(`${w}: debe ser un objeto`); continue; }
     for (const k of Object.keys(item)) if (!ITEM_KEYS.includes(k)) errors.push(`${w}.${k}: campo desconocido`);

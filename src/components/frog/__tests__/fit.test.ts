@@ -5,11 +5,11 @@ import type { StageId } from '../../../domain/progression';
 import { ITEM_ART, STAGE_ART, type ItemArt } from '../art';
 import type { FitConfig } from '../fit-schema';
 import { normalizeFit, stringifyFit, validateFit } from '../fit-schema.js';
-import { EMPTY_FIT, layoutFrog, layoutItem, PROJECT_FIT } from '../layout';
+import { EMPTY_FIT, layoutFace, layoutFrog, layoutItem, PROJECT_FIT } from '../layout';
 
 const STAGES = Object.keys(STAGE_ART) as StageId[];
 
-/** Cómo se colocaban los complementos antes de los ajustes (versión 1.1.0). */
+/** La fórmula de colocación por defecto (anclaje × dibujo base), escrita aparte. */
 function legacyRect(id: string, stage: StageId) {
   const item = ITEM_ART[id];
   const s = STAGE_ART[stage];
@@ -35,8 +35,9 @@ describe('validateFit', () => {
       items: {
         'eyes-round': { base: { scale: 1.1 }, stages: { adult: { x: 1, y: -2, rotate: 5, pivot: [0.5, 0.5], z: 40, layer: 'front', overlay: 'none', spread: 3 } }, split: [0.45, 0.55] },
         'hat-new-thing': { stages: { tadpole: { y: 4 } } },
+        face: { base: { y: -1 }, stages: { sage: { scale: 1.05 } } },
       },
-    }, { knownIds: ['eyes-round'] });
+    }, { knownIds: ['eyes-round', 'face'] });
     expect(r.ok).toBe(true);
     expect(r.warnings).toHaveLength(1); // hat-new-thing no está en el catálogo: aviso, no error
   });
@@ -77,10 +78,10 @@ describe('validateFit', () => {
 });
 
 describe('layoutItem', () => {
-  it('sin ajustes coloca todo exactamente como antes', () => {
+  it('sin ajustes usa los anclajes por defecto de art.ts', () => {
     for (const id of Object.keys(ITEM_ART)) {
       for (const st of STAGES) {
-        const l = layoutItem(id, st, 'neutral', EMPTY_FIT)!;
+        const l = layoutItem(id, st, EMPTY_FIT)!;
         const old = legacyRect(id, st);
         for (const k of ['x', 'y', 'w', 'h'] as const) {
           expect(l.img[k]).toBeCloseTo(old[k], 6);
@@ -92,55 +93,60 @@ describe('layoutItem', () => {
     }
   });
 
-  it('los ánimos de las etapas 1-4 no mueven nada', () => {
-    for (const st of ['tadpole', 'froglet', 'young', 'adult'] as StageId[]) {
-      for (const mood of ['happy', 'sad', 'worried', 'sleeping'] as const) {
-        expect(layoutItem('hat-cap', st, mood, EMPTY_FIT)!.img).toEqual(layoutItem('hat-cap', st, 'neutral', EMPTY_FIT)!.img);
-      }
+  it('la cara: por defecto en su sitio de la etapa; con ajuste se mueve y escala desde la nariz', () => {
+    for (const st of STAGES) {
+      const f = layoutFace(st, EMPTY_FIT);
+      const [x, y, w] = STAGE_ART[st].face;
+      expect(f.support).toEqual([x, y]);
+      expect(f.img.w).toBeCloseTo(w, 6);
+      expect(f.img.x + f.img.w / 2).toBeCloseTo(x, 6);
+      expect(f.eyes.l[0]).toBeLessThan(x);
+      expect(f.eyes.r[0]).toBeGreaterThan(x);
     }
-  });
-
-  it('la rana sabia triste (dibujada más grande) agranda los complementos con ella', () => {
-    const n = layoutItem('hat-cap', 'sage', 'neutral', EMPTY_FIT)!;
-    const s = layoutItem('hat-cap', 'sage', 'sad', EMPTY_FIT)!;
-    expect(s.visible.w / n.visible.w).toBeCloseTo(1.0517, 3);
-    expect(s.support[1]).toBeLessThan(n.support[1]); // la cabeza queda más arriba
+    const moved = layoutFace('adult', fit({ face: { stages: { adult: { x: 2, y: -1, scale: 1.1 } } } }));
+    const base = layoutFace('adult', EMPTY_FIT);
+    expect(moved.support[0]).toBeCloseTo(base.support[0] + 2, 6);
+    expect(moved.support[1]).toBeCloseTo(base.support[1] - 1, 6);
+    expect(moved.img.w).toBeCloseTo(base.img.w * 1.1, 6);
+    // Los ojos que se repintan sobre los sombreros siguen a la cara.
+    const lf = layoutFrog('adult', ['hat-cap'], fit({ face: { base: { x: 3 } } }));
+    expect(lf.eyeClip[0].cx).toBeCloseTo(base.eyes.l[0] + 3, 6);
   });
 
   it('ignora complementos desconocidos', () => {
     expect(layoutItem('hat-nope', 'adult')).toBeNull();
     expect(layoutItem('skin-blue', 'adult')).toBeNull();
-    expect(layoutFrog('adult', 'happy', ['hat-nope', undefined, 'neck-tie']).front.map((l) => l.id)).toEqual(['neck-tie']);
+    expect(layoutFrog('adult', ['hat-nope', undefined, 'neck-tie']).front.map((l) => l.id)).toEqual(['neck-tie']);
   });
 
   it('escala alrededor del punto de apoyo y desplaza en unidades del viewBox', () => {
-    const base = layoutItem('neck-medal', 'adult', 'neutral', EMPTY_FIT)!;
-    const l = layoutItem('neck-medal', 'adult', 'neutral', fit({ 'neck-medal': { stages: { adult: { scale: 1.5, x: 2, y: -3 } } } }))!;
+    const base = layoutItem('neck-medal', 'adult', EMPTY_FIT)!;
+    const l = layoutItem('neck-medal', 'adult', fit({ 'neck-medal': { stages: { adult: { scale: 1.5, x: 2, y: -3 } } } }))!;
     expect(l.visible.w).toBeCloseTo(base.visible.w * 1.5, 6);
     expect(l.support[0]).toBeCloseTo(base.support[0] + 2, 6);
     expect(l.support[1]).toBeCloseTo(base.support[1] - 3, 6);
     // El punto de apoyo sigue en la misma proporción del dibujo.
     expect((l.support[1] - l.visible.y) / l.visible.h).toBeCloseTo(ITEM_ART['neck-medal'].ay, 6);
     // Otras etapas no cambian.
-    expect(layoutItem('neck-medal', 'young', 'neutral', fit({ 'neck-medal': { stages: { adult: { scale: 1.5 } } } }))!.img)
-      .toEqual(layoutItem('neck-medal', 'young', 'neutral', EMPTY_FIT)!.img);
+    expect(layoutItem('neck-medal', 'young', fit({ 'neck-medal': { stages: { adult: { scale: 1.5 } } } }))!.img)
+      .toEqual(layoutItem('neck-medal', 'young', EMPTY_FIT)!.img);
   });
 
   it('los campos de la etapa sustituyen a los de base', () => {
     const f = fit({ 'hat-cap': { base: { scale: 2, y: 5 }, stages: { tadpole: { scale: 1.2 } } } });
-    const t = layoutItem('hat-cap', 'tadpole', 'neutral', f)!;
-    const t0 = layoutItem('hat-cap', 'tadpole', 'neutral', EMPTY_FIT)!;
+    const t = layoutItem('hat-cap', 'tadpole', f)!;
+    const t0 = layoutItem('hat-cap', 'tadpole', EMPTY_FIT)!;
     expect(t.visible.w / t0.visible.w).toBeCloseTo(1.2, 6);
     expect(t.support[1] - t0.support[1]).toBeCloseTo(5, 6);
-    const a = layoutItem('hat-cap', 'adult', 'neutral', f)!;
-    expect(a.visible.w / layoutItem('hat-cap', 'adult', 'neutral', EMPTY_FIT)!.visible.w).toBeCloseTo(2, 6);
+    const a = layoutItem('hat-cap', 'adult', f)!;
+    expect(a.visible.w / layoutItem('hat-cap', 'adult', EMPTY_FIT)!.visible.w).toBeCloseTo(2, 6);
   });
 
   it('gira alrededor del apoyo por defecto o del pivote indicado', () => {
-    const l = layoutItem('hat-beret', 'adult', 'neutral', fit({ 'hat-beret': { base: { rotate: -12 } } }))!;
+    const l = layoutItem('hat-beret', 'adult', fit({ 'hat-beret': { base: { rotate: -12 } } }))!;
     expect(l.rotate).toBe(-12);
     expect(l.pivot).toEqual(l.support);
-    const p = layoutItem('hat-beret', 'adult', 'neutral', fit({ 'hat-beret': { base: { rotate: 8, pivot: [0, 1] } } }))!;
+    const p = layoutItem('hat-beret', 'adult', fit({ 'hat-beret': { base: { rotate: 8, pivot: [0, 1] } } }))!;
     expect(p.pivot).toEqual([p.visible.x, p.visible.y + p.visible.h]);
   });
 
@@ -148,8 +154,8 @@ describe('layoutItem', () => {
     const plain: ItemArt = { ratio: 0.5, w: 0.6, ax: 0.5, ay: 0.9 };
     // Mismo dibujo con un 20 % de margen a cada lado y un 50 % por arriba.
     const padded: ItemArt = { ...plain, bounds: [0.2, 0.5, 0.8, 1] };
-    const a = layoutItem('hat-test', 'young', 'neutral', EMPTY_FIT, { 'hat-test': plain })!;
-    const b = layoutItem('hat-test', 'young', 'neutral', EMPTY_FIT, { 'hat-test': padded })!;
+    const a = layoutItem('hat-test', 'young', EMPTY_FIT, { 'hat-test': plain })!;
+    const b = layoutItem('hat-test', 'young', EMPTY_FIT, { 'hat-test': padded })!;
     expect(b.visible).toEqual(a.visible);
     expect(b.img.w).toBeCloseTo(a.visible.w / 0.6, 6);
     expect(b.img.h).toBeCloseTo(a.visible.h / 0.5, 6);
@@ -159,24 +165,24 @@ describe('layoutItem', () => {
 
   it('gafas partidas: solo con split y spread', () => {
     const f = fit({ 'eyes-round': { split: [0.45, 0.55], stages: { adult: { spread: 4 } } } });
-    const l = layoutItem('eyes-round', 'adult', 'neutral', f)!;
+    const l = layoutItem('eyes-round', 'adult', f)!;
     expect(l.split?.spread).toBe(4);
     expect(l.split!.l).toBeCloseTo(l.visible.x + l.visible.w * 0.45, 6);
-    expect(layoutItem('eyes-round', 'young', 'neutral', f)!.split).toBeUndefined();
+    expect(layoutItem('eyes-round', 'young', f)!.split).toBeUndefined();
   });
 });
 
 describe('layoutFrog', () => {
   it('orden por defecto: cuello, sombrero, gafas; overlay de ojos para sombreros', () => {
-    const l = layoutFrog('adult', 'happy', ['eyes-sun', 'hat-cap', 'neck-tie'], EMPTY_FIT);
+    const l = layoutFrog('adult', ['eyes-sun', 'hat-cap', 'neck-tie'], EMPTY_FIT);
     expect(l.front.map((i) => i.id)).toEqual(['neck-tie', 'hat-cap', 'eyes-sun']);
     expect(l.front.map((i) => i.overlay)).toEqual(['none', 'eyes', 'none']);
-    expect(layoutFrog('adult', 'happy', ['hat-astronaut'], EMPTY_FIT).front[0].overlay).toBe('none');
+    expect(layoutFrog('adult', ['hat-astronaut'], EMPTY_FIT).front[0].overlay).toBe('none');
   });
 
   it('z y capa trasera configurables', () => {
     const f = fit({ 'neck-scarf': { base: { z: 50 } }, 'hat-wizard': { base: { layer: 'back' } } });
-    const l = layoutFrog('young', 'neutral', ['neck-scarf', 'hat-wizard', 'eyes-round'], f);
+    const l = layoutFrog('young', ['neck-scarf', 'hat-wizard', 'eyes-round'], f);
     expect(l.back.map((i) => i.id)).toEqual(['hat-wizard']);
     expect(l.front.map((i) => i.id)).toEqual(['eyes-round', 'neck-scarf']);
   });
@@ -186,6 +192,7 @@ describe('accessory-fit.json del proyecto', () => {
   const ids = new Set([...CATALOG, ...SEASONS.flatMap((s) => s.items)].map((i) => i.id));
   it('solo ajusta complementos que existen y tienen dibujo', () => {
     for (const id of Object.keys(PROJECT_FIT.items)) {
+      if (id === 'face') continue;
       expect(ids.has(id) ? id : `no existe ${id}`).toBe(id);
       expect(ITEM_ART[id] ? id : `sin dibujo ${id}`).toBe(id);
     }

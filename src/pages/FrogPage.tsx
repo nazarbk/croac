@@ -84,8 +84,9 @@ export function FrogPage() {
         </div>
         <p className="text-sm text-muted mt-1">Toca un complemento para ponérselo o quitárselo.</p>
         {SLOTS.map((slot) => {
-          const items = owned.filter((i) => i.slot === slot.id);
-          if (!items.length) return null;
+          // Las pieles ocultas (sin dibujos por ahora) se conservan, pero no se ofrecen.
+          const items = owned.filter((i) => i.slot === slot.id && !(i.slot === 'skin' && i.hidden));
+          if (!items.length || (slot.id === 'skin' && items.length < 2)) return null;
           return (
             <div key={slot.id} className="mt-4">
               <div className="text-sm font-semibold mb-2">{slot.plural}</div>

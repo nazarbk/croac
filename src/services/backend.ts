@@ -5,7 +5,7 @@
  *   VITE_SUPABASE_ANON_KEY=sb_publishable_...   (o la clave «anon» antigua, eyJ...)
  * El esquema de la base de datos está en supabase/schema.sql.
  */
-import { ApiError, type Backend, type Friendship, type Profile, type RemoteState, type Session } from './types';
+import { ApiError, type Backend, type Friendship, type Profile, type RemoteConfig, type RemoteState, type Session } from './types';
 
 const clean = (v: unknown) => (typeof v === 'string' ? v.trim().replace(/^["']|["']$/g, '') : '');
 
@@ -73,6 +73,7 @@ function toApiError(status: number, body: Record<string, string> | null): ApiErr
   if (raw.includes('23505') || raw.includes('duplicate key')) return new ApiError('username_taken', msg, status);
   if (raw.includes('not_found')) return new ApiError('not_found', msg, status);
   if (raw.includes(' self')) return new ApiError('self', msg, status);
+  if (raw.includes('42501') || raw.includes('row-level security') || raw.includes('permission denied')) return new ApiError('forbidden', msg, status);
   if (status === 401 || raw.includes('jwt expired')) return new ApiError('session_expired', msg, status);
   return new ApiError('server', msg, status);
 }
@@ -208,5 +209,34 @@ export const backend: Backend = {
       method: 'POST', token: s.accessToken, prefer: 'resolution=merge-duplicates',
       body: JSON.stringify({ user_id: s.userId, state, updated_at: updatedAt }),
     });
+  },
+
+  async isAdmin(s) {
+    try {
+      return (await call<boolean>('/rest/v1/rpc/is_admin', { method: 'POST', token: s.accessToken, body: '{}' })) === true;
+    } catch (e) {
+      // Sin la función en el esquema (aún no se ha actualizado): nadie es administrador.
+      if (e instanceof ApiError && e.code === 'schema_missing') return false;
+      throw e;
+    }
+  },
+
+  async getConfig(key) {
+    const rows = await call<{ value: unknown; updated_at: string }[]>(`/rest/v1/app_config?key=eq.${encodeURIComponent(key)}&select=value,updated_at`);
+    return rows[0] ? { value: rows[0].value, updatedAt: rows[0].updated_at } : null;
+  },
+
+  async setConfig(s, key, value): Promise<RemoteConfig> {
+    const rows = await call<{ value: unknown; updated_at: string }[]>('/rest/v1/app_config?on_conflict=key', {
+      method: 'POST', token: s.accessToken, prefer: 'resolution=merge-duplicates,return=representation',
+      body: JSON.stringify({ key, value, updated_at: new Date().toISOString(), updated_by: s.userId }),
+    });
+    // Sin permiso, PostgREST no devuelve fila (o un 403): no se ha guardado.
+    if (!rows?.[0]) throw new ApiError('forbidden', 'Sin permiso', 403);
+    return { value: rows[0].value, updatedAt: rows[0].updated_at };
+  },
+
+  async deleteConfig(s, key) {
+    await call(`/rest/v1/app_config?key=eq.${encodeURIComponent(key)}`, { method: 'DELETE', token: s.accessToken });
   },
 };

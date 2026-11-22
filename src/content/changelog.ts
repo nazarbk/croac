@@ -16,6 +16,19 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.2.0',
+    date: '2026-11-22',
+    title: 'Ranas renovadas',
+    art: 'ui/celebrate.webp',
+    changes: [
+      { kind: 'mejora', text: 'Tu rana estrena dibujo en las cinco etapas, con caras nuevas para cada ánimo.' },
+      { kind: 'mejora', text: 'Gafas, colgantes, bufandas y gorros mejor colocados en cada etapa.' },
+      { kind: 'nuevo', text: 'Dos fondos de la Temporada 1: la Casa del árbol y el Reino de caramelo.' },
+      { kind: 'nuevo', text: 'Cartel nuevo de la temporada en la tienda.' },
+      { kind: 'mejora', text: 'Las pieles de colores descansan una temporada mientras preparamos sus nuevos dibujos. Si tenías alguna, sigue siendo tuya.' },
+    ],
+  },
+  {
     version: '1.1.0',
     date: '2026-11-19',
     title: 'Temporada 1: Hora de aventuras',

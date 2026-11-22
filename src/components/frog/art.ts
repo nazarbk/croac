@@ -1,21 +1,31 @@
-/* Generado a partir de las ilustraciones (docs/IMAGENES.md). Coordenadas en una caja de 240 × 240. */
+/* Medido sobre las ilustraciones (docs/IMAGENES.md). Coordenadas en una caja de 240 × 240. */
 import type { StageId } from '../../domain/progression';
 
 /** Súbelo cuando cambies las imágenes de public/art para invalidar la caché. */
-export const ART_VERSION = 2;
+export const ART_VERSION = 3;
 export const art = (path: string) => `${import.meta.env.BASE_URL}art/${path}?v=${ART_VERSION}`;
 
 export interface Rect { x: number; y: number; w: number; h: number }
 /** x, y del ancla y ancho de referencia (cabeza, separación de ojos o cuello). */
 export type AnchorTuple = [number, number, number];
-export interface StageArt { rect: Rect; hat: AnchorTuple; eyes: AnchorTuple; neck: AnchorTuple }
+/**
+ * `rect`: dónde se dibuja el cuerpo (public/art/frog/body/<etapa>.webp).
+ * `face`: dónde va la expresión (public/art/frog/face/<ánimo>.webp): centro de la nariz y
+ * ancho del lienzo común de las caras (940 × 540, con la nariz en el centro).
+ * Anclajes de complementos: `hat` (entre los ojos, sobre la cabeza), `eyes` (centro y
+ * separación de los ojos) y `neck` (barbilla y ancho de referencia).
+ */
+export interface StageArt { rect: Rect; face: AnchorTuple; hat: AnchorTuple; eyes: AnchorTuple; neck: AnchorTuple }
+
+/** Proporción alto/ancho del lienzo común de las caras. */
+export const FACE_RATIO = 540 / 940;
 
 export const STAGE_ART: Record<StageId, StageArt> = {
-  tadpole: { rect: { x: 58.63, y: 54.48, w: 122.74, h: 152.08 }, hat: [120.0, 74.53, 123.31], eyes: [120.0, 91.76, 58.03], neck: [120.0, 164.29, 87.04] },
-  froglet: { rect: { x: 59.58, y: 52.48, w: 120.69, h: 174.16 }, hat: [120.0, 85.28, 119.61], eyes: [119.12, 104.63, 58.05], neck: [120.0, 153.88, 91.47] },
-  young: { rect: { x: 57.25, y: 62.83, w: 125.67, h: 163.83 }, hat: [120.0, 91.49, 122.28], eyes: [120.0, 113.33, 56.77], neck: [120.0, 165.73, 94.33] },
-  adult: { rect: { x: 34.92, y: 33.71, w: 170.15, h: 194.64 }, hat: [120.0, 76.95, 130.22], eyes: [120.0, 98.65, 60.77], neck: [120.0, 154.21, 114.59] },
-  sage: { rect: { x: 28.68, y: 40.52, w: 182.64, h: 193.24 }, hat: [120.0, 83.26, 126.88], eyes: [120.0, 99.66, 58.69], neck: [120.0, 163.54, 107.03] },
+  tadpole: { rect: { x: 75.14, y: 70, w: 126.74, h: 136 }, face: [120, 91.22, 79.28], hat: [120, 81.4, 89.3], eyes: [119.5, 82.05, 45.2], neck: [120, 136.8, 80.4] },
+  froglet: { rect: { x: 69.2, y: 80, w: 133.22, h: 146 }, face: [120, 104.42, 90.48], hat: [120, 92.1, 99.0], eyes: [119.4, 93.96, 51.6], neck: [120, 151.4, 89.1] },
+  young: { rect: { x: 72.37, y: 88, w: 95.83, h: 138 }, face: [120, 110.99, 85.18], hat: [120, 100.0, 93.2], eyes: [119.45, 101.14, 48.4], neck: [120, 156.0, 83.9] },
+  adult: { rect: { x: 37.6, y: 70, w: 165.24, h: 158 }, face: [120, 96.52, 99.08], hat: [120, 83.2, 108.2], eyes: [119.35, 85.06, 56.5], neck: [120, 131.5, 97.4] },
+  sage: { rect: { x: 35.72, y: 66, w: 168.78, h: 164 }, face: [120, 93.53, 102.03], hat: [120, 79.2, 111.2], eyes: [119.35, 81.73, 58.1], neck: [120, 134.9, 100.1] },
 };
 
 export interface ItemArt {
@@ -70,22 +80,7 @@ export const ITEM_ART: Record<string, ItemArt> = {
 };
 
 /**
- * Encuadre de cada ánimo respecto al neutral. Los ánimos de una etapa comparten encuadre,
- * salvo la rana sabia, que en algunos ánimos está dibujada algo más grande: [escala, dx, dy]
- * alrededor de `c`. Medido sobre la silueta (alfa) de las ilustraciones.
+ * Ojos de las caras (iguales en todas): centro de cada ojo respecto a la nariz y diámetro,
+ * en proporción del ancho del lienzo de la cara. Medido sobre la cara neutral.
  */
-export const MOOD_FRAME: Partial<Record<StageId, { c: [number, number] } & Partial<Record<'happy' | 'worried' | 'sad' | 'sleeping', [number, number, number]>>>> = {
-  sage: { c: [120, 148], happy: [1.0127, 0, -0.27], worried: [1.0294, -0.13, -0.54], sad: [1.0517, -0.13, -1.07], sleeping: [1.0191, 0, -0.27] },
-};
-
-/**
- * Centro de cada ojo medido en las ilustraciones (ánimo neutral, por las pupilas). Solo
- * para guías y calibración: el encaje por defecto sigue usando los anclajes de STAGE_ART.
- */
-export const EYES_MEASURED: Record<StageId, { l: [number, number]; r: [number, number]; d: number }> = {
-  tadpole: { l: [90.9, 94.1], r: [149.5, 94.1], d: 30 },
-  froglet: { l: [88.6, 103.9], r: [151.2, 103.9], d: 28 },
-  young: { l: [88.0, 114.1], r: [152.5, 114.1], d: 30 },
-  adult: { l: [86.4, 96.3], r: [154.8, 96.3], d: 35 },
-  sage: { l: [89.3, 98.8], r: [151.3, 98.8], d: 32 },
-};
+export const FACE_EYES = { l: [-274 / 940, -108.7 / 940], r: [261.6 / 940, -108.3 / 940], d: 272 / 940 } as const;

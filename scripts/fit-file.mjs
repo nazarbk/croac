@@ -12,7 +12,7 @@ export const FIT_FILE_REL = relative(ROOT, FIT_FILE).replaceAll('\\', '/');
 /** Ids con dibujo en ITEM_ART (para avisar de ajustes a complementos que no existen). */
 export async function knownItemIds() {
   const src = await readFile(join(ROOT, 'src/components/frog/art.ts'), 'utf8');
-  return [...src.matchAll(/^\s*'((?:hat|neck|eyes)-[a-z0-9-]+)':\s*\{\s*ratio/gm)].map((m) => m[1]);
+  return ['face', ...[...src.matchAll(/^\s*'((?:hat|neck|eyes)-[a-z0-9-]+)':\s*\{\s*ratio/gm)].map((m) => m[1])];
 }
 
 /**

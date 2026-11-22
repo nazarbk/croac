@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { Frog, FrogScene } from '../../components/frog/Frog';
-import { EYES_MEASURED, ITEM_ART, STAGE_ART, type ItemArt } from '../../components/frog/art';
+import { ITEM_ART, STAGE_ART, type ItemArt } from '../../components/frog/art';
 import type { FitAdjust, FitConfig } from '../../components/frog/fit-schema';
 import { FIT_LIMITS, ITEM_ID, stringifyFit, validateFit } from '../../components/frog/fit-schema.js';
-import { layoutFrog, mapPoint, PROJECT_FIT, resolveAdjust, slotOf, type AccSlot, type ItemLayout } from '../../components/frog/layout';
+import { FACE_ID, layoutFrog, PROJECT_FIT, resolveAdjust, slotOf, type AccSlot, type FaceLayout, type ItemLayout } from '../../components/frog/layout';
+import { useActiveFitInfo } from '../../components/frog/fitStore';
+import { publishFit, unpublishFit } from '../../services/appConfig';
+import { useIsAdmin } from '../../services/admin';
+import { friendlyError } from '../../services/types';
 import type { Mood } from '../../domain/engine';
 import { STAGES, type StageId } from '../../domain/progression';
 import { CATALOG } from '../../domain/shop';
 import { cn } from '../../lib/cn';
 import { copyStage, getScope, patchAdjust, renameItem, restoreFrom, setSplit, type Scope } from './fitEdit';
 import { artSnippet, loadLocalImage, SLOT_DEFAULTS, type LocalItem } from './localImage';
-import { LAYERED_ART, layeredStageReady, MOODS as SKIN_MOODS, SKIN_MODELS } from '../../components/frog/skins';
 
 /**
  * Probador de complementos (#/dev/wardrobe). Solo se incluye en desarrollo (ver App.tsx).
@@ -31,8 +34,7 @@ const MOODS: { id: Mood; label: string }[] = [
 ];
 const SLOT_LABEL: Record<AccSlot, string> = { hat: 'Cabeza', neck: 'Cuello', eyes: 'Gafas' };
 const ACC = CATALOG.filter((i): i is typeof i & { slot: AccSlot } => i.slot === 'hat' || i.slot === 'neck' || i.slot === 'eyes');
-const SKINS = ['skin-green', ...CATALOG.filter((i) => i.slot === 'skin' && i.id !== 'skin-green').map((i) => i.id)];
-const nameOf = (id: string) => CATALOG.find((i) => i.id === id)?.name ?? id;
+const nameOf = (id: string) => (id === FACE_ID ? 'Cara (expresiones)' : CATALOG.find((i) => i.id === id)?.name ?? id);
 const stageName = (s: StageId) => STAGES.find((x) => x.id === s)!.name;
 const r2 = (v: number) => Math.round(v * 100) / 100;
 
@@ -48,6 +50,9 @@ function parseDraft(s: string | null): FitConfig | null {
 }
 
 interface History { past: FitConfig[]; present: FitConfig; future: FitConfig[] }
+/** Lo que se está moviendo: un complemento o la cara. */
+type Sel = Pick<ItemLayout, 'img' | 'visible' | 'support' | 'pivot' | 'rotate' | 'split'>;
+const faceSel = (f: FaceLayout): Sel => ({ img: f.img, visible: f.img, support: f.support, pivot: f.pivot, rotate: f.rotate });
 const undoH = (h: History): History => (h.past.length ? { past: h.past.slice(0, -1), present: h.past[h.past.length - 1], future: [h.present, ...h.future] } : h);
 const redoH = (h: History): History => (h.future.length ? { past: [...h.past, h.present], present: h.future[0], future: h.future.slice(1) } : h);
 type Notice = { tone: 'ok' | 'warn' | 'error'; title: string; lines?: string[] };
@@ -55,7 +60,6 @@ type Notice = { tone: 'ok' | 'warn' | 'error'; title: string; lines?: string[] }
 export default function WardrobePage() {
   const [stage, setStage] = useState<StageId>('adult');
   const [mood, setMood] = useState<Mood>('happy');
-  const [skin, setSkin] = useState('skin-green');
   const [itemId, setItemId] = useState('eyes-round');
   const [withOthers, setWithOthers] = useState(false);
   const [others, setOthers] = useState<Partial<Record<AccSlot, string>>>({ hat: 'hat-cap', neck: 'neck-bowtie', eyes: 'eyes-round' });
@@ -65,26 +69,31 @@ export default function WardrobePage() {
   const [local, setLocal] = useState<LocalItem | null>(null);
   const [localSlot, setLocalSlot] = useState<AccSlot>('hat');
   const [saved, setSaved] = useState<string | null>(readDraft);
-  const [hist, setHist] = useState<History>(() => ({ past: [], present: parseDraft(readDraft()) ?? PROJECT_FIT, future: [] }));
+  const active = useActiveFitInfo();
+  const isAdmin = useIsAdmin();
+  const [hist, setHist] = useState<History>(() => ({ past: [], present: parseDraft(readDraft()) ?? active.fit, future: [] }));
   const [notice, setNotice] = useState<Notice | null>(null);
   const [confirmWrite, setConfirmWrite] = useState(false);
+  const [confirmPublish, setConfirmPublish] = useState<'publish' | 'unpublish' | null>(null);
+  const [busy, setBusy] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(() => new URLSearchParams(location.hash.split('?')[1]).has('hoja'));
   const sheetSize = Number(new URLSearchParams(location.hash.split('?')[1]).get('hoja')) || 112;
   const lastEdit = useRef<{ key?: string; t: number }>({ t: 0 });
 
   const fit = hist.present;
   const scope: Scope = scopeMode === 'base' ? 'base' : stage;
+  const isFace = itemId === FACE_ID;
   const slot = slotOf(itemId) ?? 'hat';
   const itemArt: Record<string, ItemArt> | undefined = local ? { [local.id]: local.art } : undefined;
   const itemHref = local ? { [local.id]: local.href } : undefined;
   const art = local ? { ...ITEM_ART, [local.id]: local.art } : ITEM_ART;
-  const knownIds = [...ACC.map((i) => i.id), ...(local ? [local.id] : [])];
+  const knownIds = [FACE_ID, ...ACC.map((i) => i.id), ...(local ? [local.id] : [])];
 
-  const equippedFor = (id = itemId): Partial<Record<AccSlot | 'skin', string>> => {
-    const s = slotOf(id) ?? 'hat';
-    const e: Partial<Record<AccSlot | 'skin', string>> = { skin };
+  const equippedFor = (id = itemId): Partial<Record<AccSlot, string>> => {
+    const s = slotOf(id);
+    const e: Partial<Record<AccSlot, string>> = {};
     if (withOthers) for (const k of ['hat', 'neck', 'eyes'] as AccSlot[]) if (others[k] && k !== s) e[k] = others[k];
-    e[s] = id;
+    if (s) e[s] = id;
     return e;
   };
   const frogProps = { fit, itemArt, itemHref, equipped: equippedFor() };
@@ -123,7 +132,12 @@ export default function WardrobePage() {
   // ---------- Estado de guardado ----------
   const draftStr = stringifyFit(fit);
   const projectStr = stringifyFit(PROJECT_FIT);
-  const unsaved = draftStr !== (saved ?? projectStr);
+  const appStr = stringifyFit(active.fit);
+  const unsaved = draftStr !== (saved ?? appStr);
+  // Lo publicado llega del servidor después de abrir: si no se ha tocado nada, se parte de ello.
+  useEffect(() => {
+    setHist((h) => (!readDraft() && !h.past.length && !h.future.length ? { ...h, present: active.fit } : h));
+  }, [active.fit]);
   useEffect(() => {
     if (!unsaved) return;
     const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); };
@@ -190,6 +204,33 @@ export default function WardrobePage() {
     }
   };
 
+  const publish = async () => {
+    setConfirmPublish(null);
+    setBusy(true);
+    try {
+      const r = await publishFit(fit);
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* nada */ }
+      setSaved(null);
+      setNotice({ tone: 'ok', title: 'Publicado en la app', lines: [`Guardado en el servidor (${new Date(r.updatedAt).toLocaleString('es-ES')}). Lo verán todos al abrir la app.`, 'Para que también quede en el código: «Descargar JSON» y npm run fit:apply.'] });
+    } catch (e) {
+      setNotice({ tone: 'error', title: 'No se ha publicado nada', lines: [friendlyError(e)] });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const unpublish = async () => {
+    setConfirmPublish(null);
+    setBusy(true);
+    try {
+      await unpublishFit();
+      setNotice({ tone: 'ok', title: 'Retirado de la app', lines: ['La app vuelve a usar los ajustes del proyecto (accessory-fit.json).'] });
+    } catch (e) {
+      setNotice({ tone: 'error', title: 'No se ha podido retirar', lines: [friendlyError(e)] });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   // ---------- PNG local ----------
   const loadPng = async (file: File) => {
     const id = local?.id && slotOf(local.id) === localSlot ? local.id : `${localSlot}-nuevo`;
@@ -213,8 +254,9 @@ export default function WardrobePage() {
   const setLocalArt = (patch: Partial<ItemArt>) => local && setLocal({ ...local, art: { ...local.art, ...patch } });
 
   // ---------- Dibujo principal ----------
-  const layout = layoutFrog(stage, mood, [equippedFor().neck, equippedFor().hat, mood === 'sleeping' ? undefined : equippedFor().eyes], fit, art);
-  const sel = [...layout.back, ...layout.front].find((l) => l.id === itemId);
+  const layout = layoutFrog(stage, [equippedFor().neck, equippedFor().hat, mood === 'sleeping' ? undefined : equippedFor().eyes], fit, art);
+  const itemSel = [...layout.back, ...layout.front].find((l) => l.id === itemId);
+  const sel: Sel | undefined = isFace ? faceSel(layout.face) : itemSel;
   const eff = resolveAdjust(fit, itemId, stage);
   const scoped = getScope(fit, itemId, scope) ?? {};
   const split = fit.items[itemId]?.split;
@@ -225,12 +267,16 @@ export default function WardrobePage() {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="min-w-0">
             <h1 className="font-display text-lg font-extrabold leading-tight">Probador de complementos</h1>
-            <p className="text-[12px] text-muted">Herramienta de desarrollo · no existe en la app publicada</p>
+            <p className="text-[12px] text-muted">
+              {isAdmin ? 'Administración · solo lo ven las cuentas de administrador' : 'Modo desarrollo (npm run dev)'} · <a href="#/hoy" className="underline">Volver a la app</a>
+            </p>
           </div>
           <div className="flex flex-wrap gap-2 ml-auto">
             <Status tone={unsaved ? 'warn' : 'idle'} title="Cambios temporales" text={unsaved ? 'Sin guardar: se pierden al recargar' : 'Ninguno'} />
             <Status tone={saved ? 'info' : 'idle'} title="Borrador local" text={saved ? (saved === draftStr ? 'En este navegador · al día' : 'En este navegador · anterior') : 'No hay'} />
-            <Status tone={draftStr === projectStr ? 'ok' : 'idle'} title="Proyecto (accessory-fit.json)" text={`${Object.keys(PROJECT_FIT.items).length} ajustados · ${draftStr === projectStr ? 'es lo que ves' : 'distinto de lo que ves'}`} />
+            <Status tone={draftStr === projectStr ? 'ok' : 'idle'} title="Proyecto (accessory-fit.json)" text={`${Object.keys(PROJECT_FIT.items).length} ajustados · ${draftStr === projectStr ? 'es lo que ves' : 'distinto'}`} />
+            <Status tone={active.source === 'remote' && draftStr === appStr ? 'ok' : 'idle'} title="Publicado en la app"
+              text={active.source === 'remote' ? `${active.updatedAt ? new Date(active.updatedAt).toLocaleDateString('es-ES') : 'Sí'} · ${draftStr === appStr ? 'es lo que ves' : 'distinto'}` : 'No (usa el del proyecto)'} />
           </div>
         </div>
         <div className="flex flex-wrap gap-2 mt-2.5">
@@ -239,7 +285,7 @@ export default function WardrobePage() {
           <Sep />
           <Btn onClick={saveDraft} disabled={saved === draftStr}>Guardar borrador local</Btn>
           <Btn onClick={dropDraft} disabled={!saved}>Borrar borrador</Btn>
-          <Btn onClick={() => edit(() => PROJECT_FIT)} disabled={draftStr === projectStr}>Volver al proyecto</Btn>
+          <Btn onClick={() => edit(() => active.fit)} disabled={draftStr === appStr}>Volver a lo de la app</Btn>
           <Sep />
           <Btn onClick={download}>Descargar JSON</Btn>
           <Btn onClick={copy}>Copiar JSON</Btn>
@@ -247,15 +293,33 @@ export default function WardrobePage() {
             Importar JSON
             <input type="file" accept="application/json,.json" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importFile(f); e.target.value = ''; }} />
           </label>
+          {import.meta.env.DEV && <>
+            <Sep />
+            {!confirmWrite ? (
+              <Btn onClick={() => setConfirmWrite(true)} disabled={draftStr === projectStr}>Incorporar al proyecto…</Btn>
+            ) : (
+              <span className="inline-flex gap-2 items-center text-[13px]">
+                <span>¿Escribir <code className="font-mono">{FIT_FILE}</code>?</span>
+                <Btn tone="primary" onClick={() => void writeProject()}>Sí, escribir</Btn>
+                <Btn onClick={() => setConfirmWrite(false)}>Cancelar</Btn>
+              </span>
+            )}
+          </>}
           <Sep />
-          {!confirmWrite ? (
-            <Btn tone="primary" onClick={() => setConfirmWrite(true)} disabled={draftStr === projectStr}>Incorporar al proyecto…</Btn>
-          ) : (
+          {confirmPublish ? (
             <span className="inline-flex gap-2 items-center text-[13px]">
-              <span>¿Escribir <code className="font-mono">{FIT_FILE}</code>?</span>
-              <Btn tone="primary" onClick={() => void writeProject()}>Sí, escribir</Btn>
-              <Btn onClick={() => setConfirmWrite(false)}>Cancelar</Btn>
+              <span>{confirmPublish === 'publish' ? '¿Publicar para todos los usuarios?' : '¿Retirar lo publicado y volver a lo del proyecto?'}</span>
+              <Btn tone="primary" onClick={() => void (confirmPublish === 'publish' ? publish() : unpublish())}>Sí</Btn>
+              <Btn onClick={() => setConfirmPublish(null)}>Cancelar</Btn>
             </span>
+          ) : (
+            <>
+              <Btn tone="primary" onClick={() => setConfirmPublish('publish')} disabled={!isAdmin || busy || (active.source === 'remote' && draftStr === appStr)}
+                title={isAdmin ? 'Guardar en el servidor: lo verán todos sin desplegar' : 'Entra con una cuenta de administrador para publicar'}>
+                {busy ? 'Guardando…' : 'Publicar en la app…'}
+              </Btn>
+              {active.source === 'remote' && <Btn onClick={() => setConfirmPublish('unpublish')} disabled={!isAdmin || busy}>Retirar de la app…</Btn>}
+            </>
           )}
         </div>
         {notice && (
@@ -279,13 +343,9 @@ export default function WardrobePage() {
           <Label text="Ánimo">
             <Chips value={mood} onChange={setMood} options={MOODS.map((m) => ({ value: m.id, label: m.label }))} />
           </Label>
-          <Label text="Piel">
-            <select className={selectCls} value={skin} onChange={(e) => setSkin(e.target.value)}>
-              {SKINS.map((s) => <option key={s} value={s}>{nameOf(s)}{CATALOG.find((i) => i.id === s)?.hidden ? ' (oculta)' : ''}</option>)}
-            </select>
-          </Label>
           <Label text="Complemento">
             <select className={selectCls} value={itemId} onChange={(e) => setItemId(e.target.value)}>
+              <optgroup label="Rana"><option value={FACE_ID}>Cara (las 5 expresiones){fit.items[FACE_ID] ? ' •' : ''}</option></optgroup>
               {(['hat', 'neck', 'eyes'] as AccSlot[]).map((s) => (
                 <optgroup key={s} label={SLOT_LABEL[s]}>
                   {ACC.filter((i) => i.slot === s).map((i) => <option key={i.id} value={i.id}>{i.name}{i.season ? ` (T${i.season.slice(1)})` : ''}{fit.items[i.id] ? ' •' : ''}</option>)}
@@ -376,7 +436,8 @@ export default function WardrobePage() {
             <Num label="Giro (°)" value={scoped.rotate} fallback={eff.rotate ?? 0} step={0.5} onChange={(v) => setField({ rotate: v }, 'rotate')} />
             <Num label="Pivote X (0-1)" value={scoped.pivot?.[0]} fallback={eff.pivot?.[0] ?? art[itemId]?.ax ?? 0.5} step={0.05} onChange={(v) => setField({ pivot: v === undefined ? undefined : [v, scoped.pivot?.[1] ?? eff.pivot?.[1] ?? art[itemId]?.ay ?? 0.5] }, 'pivot')} />
             <Num label="Pivote Y (0-1)" value={scoped.pivot?.[1]} fallback={eff.pivot?.[1] ?? art[itemId]?.ay ?? 0.5} step={0.05} onChange={(v) => setField({ pivot: v === undefined ? undefined : [scoped.pivot?.[0] ?? eff.pivot?.[0] ?? art[itemId]?.ax ?? 0.5, v] }, 'pivot')} />
-            <Num label="Orden (z)" value={scoped.z} fallback={sel?.z ?? 0} step={1} onChange={(v) => setField({ z: v === undefined ? undefined : Math.round(v) }, 'z')} />
+            {!isFace && <>
+            <Num label="Orden (z)" value={scoped.z} fallback={itemSel?.z ?? 0} step={1} onChange={(v) => setField({ z: v === undefined ? undefined : Math.round(v) }, 'z')} />
             <label className="text-[12px] font-medium text-muted">Capa
               <select className={cn(selectCls, 'mt-1')} value={scoped.layer ?? ''} onChange={(e) => setField({ layer: (e.target.value || undefined) as FitAdjust['layer'] }, 'layer')}>
                 <option value="">({eff.layer ?? 'front'})</option><option value="front">Delante</option><option value="back">Detrás de la rana</option>
@@ -384,12 +445,14 @@ export default function WardrobePage() {
             </label>
             <label className="text-[12px] font-medium text-muted col-span-2">Repintar encima
               <select className={cn(selectCls, 'mt-1')} value={scoped.overlay ?? ''} onChange={(e) => setField({ overlay: (e.target.value || undefined) as FitAdjust['overlay'] }, 'overlay')}>
-                <option value="">Automático ({sel?.overlay === 'eyes' ? 'ojos' : sel?.overlay === 'head' ? 'cabeza' : 'nada'})</option>
+                <option value="">Automático ({itemSel?.overlay === 'eyes' ? 'ojos' : itemSel?.overlay === 'head' ? 'cabeza' : 'nada'})</option>
                 <option value="none">Nada</option><option value="eyes">Ojos (sombrero entre los ojos)</option><option value="head">Cabeza (meter bajo la barbilla)</option>
               </select>
             </label>
+            </>}
           </div>
-          {slot === 'eyes' && (
+          {isFace && <p className="text-[12px] text-muted leading-snug">La cara es la misma imagen para todos los ánimos: lo que ajustes aquí vale para las cinco expresiones de esta etapa. Prueba con «Ánimo» que todas encajen.</p>}
+          {!isFace && slot === 'eyes' && (
             <div className="rounded-xl border border-line p-2.5 space-y-2">
               <div className="text-[13px] font-semibold">Lentes separadas (opcional)</div>
               <p className="text-[12px] text-muted leading-snug">Corta la misma imagen en lente izquierda, puente y lente derecha (en proporción del ancho). Las lentes se mueven enteras; solo se estira el puente.</p>
@@ -404,7 +467,7 @@ export default function WardrobePage() {
           <div className="space-y-2 pt-1">
             <div className="text-[13px] font-semibold">Restablecer</div>
             <div className="flex flex-wrap gap-2">
-              <Btn onClick={() => edit((c) => restoreFrom(c, PROJECT_FIT, itemId, scope))}>Como en el proyecto ({scopeMode === 'base' ? 'base' : stageName(stage)})</Btn>
+              <Btn onClick={() => edit((c) => restoreFrom(c, active.fit, itemId, scope))}>Como en la app ({scopeMode === 'base' ? 'base' : stageName(stage)})</Btn>
               <Btn onClick={() => edit((c) => patchAdjust(c, itemId, scope, null))}>Valores originales ({scopeMode === 'base' ? 'base' : stageName(stage)})</Btn>
               <Btn onClick={() => edit((c) => restoreFrom(c, { version: 1, items: {} }, itemId))}>Todo el complemento a los originales</Btn>
             </div>
@@ -421,7 +484,7 @@ export default function WardrobePage() {
             <summary className="cursor-pointer text-muted">Datos calculados</summary>
             <pre className="mt-2 p-2 rounded-lg bg-surface-2 overflow-x-auto text-[11px] leading-snug">{JSON.stringify({
               etapa: fit.items[itemId]?.stages?.[stage] ?? null, base: fit.items[itemId]?.base ?? null,
-              apoyo: sel?.support.map(r2), visible: sel && [r2(sel.visible.x), r2(sel.visible.y), r2(sel.visible.w), r2(sel.visible.h)], z: sel?.z, capa: sel?.layer,
+              apoyo: sel?.support.map(r2), visible: sel && [r2(sel.visible.x), r2(sel.visible.y), r2(sel.visible.w), r2(sel.visible.h)], z: itemSel?.z, capa: itemSel?.layer,
             }, null, 1)}</pre>
           </details>
         </Panel>
@@ -478,47 +541,6 @@ export default function WardrobePage() {
         </details>
       </section>
 
-      {/* ---------- Pieles por capas ---------- */}
-      <section className="px-4 pb-4">
-        <details>
-          <summary className="cursor-pointer text-sm font-semibold">Pieles por capas: estado de los recursos</summary>
-          <p className="text-[12px] text-muted mt-2 max-w-3xl leading-snug">
-            La rana se dibuja con las ilustraciones completas de cada piel. La composición por capas (colores + sombreado + expresión) solo se activa
-            en una etapa cuando tiene todos sus recursos; la lista exacta está en docs/PIELES.md.
-          </p>
-          <div className="mt-3 overflow-x-auto">
-            <table className="text-[12px] border-separate border-spacing-x-3 border-spacing-y-1">
-              <thead><tr className="text-muted text-left"><th>Etapa</th><th>Sombreado</th><th>Máscaras</th>{SKIN_MOODS.map((m) => <th key={m}>Cara {m}</th>)}<th>Estado</th></tr></thead>
-              <tbody>
-                {STAGES.map((st) => {
-                  const a = LAYERED_ART[st.id];
-                  const mark = (ok: boolean) => <span className={ok ? 'text-lily-strong' : 'text-danger'}>{ok ? '✓' : '✗'}</span>;
-                  return (
-                    <tr key={st.id}>
-                      <td className="font-medium">{st.name}</td>
-                      <td>{mark(!!a?.shade)}</td>
-                      <td>{mark(!!(a?.masks.body && a.masks.belly && a.masks.spots))}</td>
-                      {SKIN_MOODS.map((m) => <td key={m}>{mark(!!a?.faces[m])}</td>)}
-                      <td>{layeredStageReady(st.id) ? 'Lista' : 'Ilustraciones completas (fallback)'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-3">
-            {Object.values(SKIN_MODELS).map((m) => (
-              <div key={m.id} className="rounded-xl border border-line bg-surface px-2.5 py-2 text-[12px]">
-                <div className="font-medium">{nameOf(m.id)}</div>
-                <div className="flex gap-1 mt-1">
-                  {Object.entries(m.colors).map(([k, c]) => <span key={k} title={`${k} ${c}`} className="w-5 h-5 rounded-md border border-black/10" style={{ background: c }} />)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </details>
-      </section>
-
       {/* ---------- Tamaño real ---------- */}
       <section className="px-4 pb-10">
         <h2 className="text-sm font-semibold mb-1">A tamaño real, como en la app</h2>
@@ -528,7 +550,7 @@ export default function WardrobePage() {
             <Real key={w} label={`Tienda ${w < 200 ? 'móvil' : 'ordenador'}`}>
               <div className="rounded-2xl border border-line bg-surface p-3 flex flex-col" style={{ width: w }}>
                 <div className="relative aspect-square rounded-xl overflow-hidden bg-surface-2">
-                  <Frog level={1} stageOverride={stage} mood="happy" fit={fit} itemArt={itemArt} itemHref={itemHref} equipped={{ skin, [slot]: itemId }} className="w-full h-full" />
+                  <Frog level={1} stageOverride={stage} mood="happy" fit={fit} itemArt={itemArt} itemHref={itemHref} equipped={isFace ? {} : { [slot]: itemId }} className="w-full h-full" />
                 </div>
                 <div className="mt-2.5 font-semibold leading-tight text-[15px]">{local?.id === itemId ? local.name : nameOf(itemId)}</div>
               </div>
@@ -551,7 +573,7 @@ function Canvas({ bg, stage, mood, guides, sel, layout, frog, onDrag, dragStart,
   stage: StageId;
   mood: Mood;
   guides: { anchors: boolean; bounds: boolean; eyes: boolean; grid: boolean };
-  sel?: ItemLayout;
+  sel?: Sel;
   layout: ReturnType<typeof layoutFrog>;
   frog: ReactNode;
   onDrag: (dx: number, dy: number, start: { x: number; y: number; t: number }) => void;
@@ -567,9 +589,7 @@ function Canvas({ bg, stage, mood, guides, sel, layout, frog, onDrag, dragStart,
     return new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
   };
   const sa = STAGE_ART[stage];
-  const f = layout.frame;
-  const pt = (x: number, y: number) => mapPoint(f, x, y);
-  const em = EYES_MEASURED[stage];
+  const em = layout.face.eyes;
   const anchors: [string, string, [number, number, number]][] = [['hat', '#f59e0b', sa.hat], ['eyes', '#0ea5e9', sa.eyes], ['neck', '#a855f7', sa.neck]];
   const line = { vectorEffect: 'non-scaling-stroke' as const, fill: 'none' };
 
@@ -591,8 +611,7 @@ function Canvas({ bg, stage, mood, guides, sel, layout, frog, onDrag, dragStart,
           const d = drag.current;
           const p = d && toBox(e);
           if (!d || !p) return;
-          // Se edita en el encuadre neutral: se deshace la escala del ánimo.
-          onDrag((p.x - d.p0.x) / f.s, (p.y - d.p0.y) / f.s, d.start);
+          onDrag(p.x - d.p0.x, p.y - d.p0.y, d.start);
         }}
         onPointerUp={() => { drag.current = null; }}
         onPointerCancel={() => { drag.current = null; }}
@@ -602,25 +621,19 @@ function Canvas({ bg, stage, mood, guides, sel, layout, frog, onDrag, dragStart,
             <line x1={v} y1={0} x2={v} y2={240} {...line} /><line x1={0} y1={v} x2={240} y2={v} {...line} />
           </g>
         ))}
-        {guides.anchors && anchors.map(([k, c, [x, y, w]]) => {
-          const [ax, ay] = pt(x, y);
-          return (
-            <g key={k} stroke={c} strokeWidth={1.5}>
-              <line x1={ax - (w * f.s) / 2} y1={ay} x2={ax + (w * f.s) / 2} y2={ay} {...line} strokeDasharray="4 3" />
-              <circle cx={ax} cy={ay} r={2} fill={c} />
-              <text x={ax + (w * f.s) / 2 + 2} y={ay + 2} fontSize={6} fill={c} stroke="none">{k}</text>
-            </g>
-          );
-        })}
-        {guides.eyes && [em.l, em.r].map(([x, y], i) => {
-          const [cx, cy] = pt(x, y);
-          return (
-            <g key={i} stroke="#ef4444" strokeWidth={1}>
-              <circle cx={cx} cy={cy} r={(em.d / 2) * f.s} {...line} />
-              <line x1={cx - 3} y1={cy} x2={cx + 3} y2={cy} {...line} /><line x1={cx} y1={cy - 3} x2={cx} y2={cy + 3} {...line} />
-            </g>
-          );
-        })}
+        {guides.anchors && anchors.map(([k, c, [ax, ay, w]]) => (
+          <g key={k} stroke={c} strokeWidth={1.5}>
+            <line x1={ax - w / 2} y1={ay} x2={ax + w / 2} y2={ay} {...line} strokeDasharray="4 3" />
+            <circle cx={ax} cy={ay} r={2} fill={c} />
+            <text x={ax + w / 2 + 2} y={ay + 2} fontSize={6} fill={c} stroke="none">{k}</text>
+          </g>
+        ))}
+        {guides.eyes && [em.l, em.r].map(([cx, cy], i) => (
+          <g key={i} stroke="#ef4444" strokeWidth={1}>
+            <circle cx={cx} cy={cy} r={em.d / 2} {...line} />
+            <line x1={cx - 3} y1={cy} x2={cx + 3} y2={cy} {...line} /><line x1={cx} y1={cy - 3} x2={cx} y2={cy + 3} {...line} />
+          </g>
+        ))}
         {guides.bounds && sel && (
           <g transform={sel.rotate ? `rotate(${sel.rotate} ${sel.pivot[0]} ${sel.pivot[1]})` : undefined}>
             {(sel.img.w !== sel.visible.w || sel.img.h !== sel.visible.h) && (
@@ -639,7 +652,7 @@ function Canvas({ bg, stage, mood, guides, sel, layout, frog, onDrag, dragStart,
         </>}
       </svg>
       <div className="absolute left-2 bottom-2 text-[11px] px-2 py-1 rounded-md bg-black/55 text-white pointer-events-none">
-        {STAGES.find((s) => s.id === stage)!.name} · {mood}{f.s !== 1 ? ` · encuadre ×${f.s}` : ''}
+        {STAGES.find((s) => s.id === stage)!.name} · {mood}
       </div>
     </div>
   );

@@ -27,12 +27,16 @@ import { ScheduleAgain } from './features/ScheduleAgain';
 import { WhatsNew } from './features/WhatsNew';
 import { NewsPage } from './pages/NewsPage';
 import { tickClock, useApp } from './store/appStore';
+import { startAdminWatch, useAdminStatus } from './services/admin';
+import { loadRemoteFit } from './services/appConfig';
 
 /**
- * Probador de complementos (#/dev/wardrobe). Solo existe en desarrollo: en el build de
- * producción `import.meta.env.DEV` es false, la rama desaparece y su código no se incluye.
+ * Probador de complementos (#/admin/probador; también #/dev/wardrobe). Solo lo abre un
+ * administrador (lo decide el servidor, ver services/admin.ts) o cualquiera con
+ * `npm run dev`. Se carga aparte: el resto de usuarios nunca lo descarga.
  */
-const Wardrobe = import.meta.env.DEV ? lazy(() => import('./dev/wardrobe/WardrobePage')) : null;
+const Wardrobe = lazy(() => import('./dev/wardrobe/WardrobePage'));
+const WARDROBE_PATHS = ['admin/probador', 'dev/wardrobe'];
 
 const PAGES: Record<RouteName, { title: string; Component: () => React.ReactElement }> = {
   hoy: { title: 'Hoy', Component: TodayPage },
@@ -83,7 +87,10 @@ export default function App() {
   useCloudSync();
   useEffect(() => {
     void account.restore();
+    startAdminWatch();
+    void loadRemoteFit();
   }, []);
+  const adminStatus = useAdminStatus();
 
   // Atajo del icono instalado (PWA): #/hoy?nueva=1 abre el editor.
   useEffect(() => {
@@ -99,8 +106,10 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [page]);
 
-  if (import.meta.env.DEV && Wardrobe && route.path === 'dev/wardrobe') {
-    return <Suspense fallback={null}><Wardrobe /></Suspense>;
+  if (WARDROBE_PATHS.includes(route.path) && (import.meta.env.DEV || adminStatus !== 'no')) {
+    if (import.meta.env.DEV || adminStatus === 'yes') return <Suspense fallback={null}><Wardrobe /></Suspense>;
+    // Comprobando con el servidor (o sin conexión): no se enseña nada de administración.
+    return <div className="min-h-dvh grid place-items-center text-muted text-sm">{adminStatus === 'error' ? 'No se ha podido comprobar tu cuenta. Revisa la conexión.' : 'Comprobando…'}</div>;
   }
 
   return (

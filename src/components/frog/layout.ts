@@ -1,23 +1,24 @@
-import type { Mood } from '../../domain/engine';
 import type { StageId } from '../../domain/progression';
 import bundledFit from './accessory-fit.json';
-import { ITEM_ART, MOOD_FRAME, STAGE_ART, type ItemArt, type Rect } from './art';
+import { FACE_EYES, FACE_RATIO, ITEM_ART, STAGE_ART, type ItemArt, type Rect } from './art';
 import type { FitAdjust, FitConfig, FitLayer } from './fit-schema';
 import { validateFit } from './fit-schema.js';
 
 /**
- * Dónde y cómo se dibuja cada complemento sobre la rana. Funciones puras, sin React ni
- * imágenes: solo aritmética sobre los anclajes de art.ts y los ajustes de
+ * Dónde y cómo se dibuja la cara y cada complemento sobre la rana. Funciones puras, sin
+ * React ni imágenes: solo aritmética sobre los anclajes de art.ts y los ajustes de
  * accessory-fit.json. Las usan el componente Frog (tienda, perfil, charca…) y el probador,
  * así que todos ven exactamente lo mismo.
+ *
+ * El cuerpo de cada etapa es el mismo en todos los ánimos (solo cambia la cara), así que el
+ * encaje no depende del ánimo.
  *
  * Orden de cálculo de un complemento:
  *   1. Ancla de la etapa (sombrero, ojos o cuello) y tamaño por defecto (ItemArt).
  *   2. Ajuste del complemento para esa etapa: escala alrededor del punto de apoyo y
  *      desplazamiento x/y.
- *   3. Encuadre del ánimo (solo la rana sabia cambia algo de tamaño según el ánimo).
- *   4. Rectángulo visible → rectángulo del archivo (por si el PNG trae márgenes).
- *   5. Giro alrededor del pivote.
+ *   3. Rectángulo visible → rectángulo del archivo (por si el PNG trae márgenes).
+ *   4. Giro alrededor del pivote.
  */
 
 export type AccSlot = 'hat' | 'neck' | 'eyes';
@@ -25,8 +26,8 @@ export const ACC_SLOTS: AccSlot[] = ['neck', 'hat', 'eyes'];
 /** Orden de dibujo por defecto: las gafas siempre por delante, también del sombrero. */
 export const DEFAULT_Z: Record<AccSlot, number> = { neck: 10, hat: 20, eyes: 30 };
 
-/** Radio del ojo respecto a la separación entre ojos (ojos pintados encima del sombrero). */
-export const EYE_BUMP = 0.43;
+/** Radio de la zona que se repinta sobre los sombreros, respecto al diámetro del ojo. */
+export const EYE_BUMP = 0.6;
 /** Unidades bajo el ancla del cuello que tapa la cabeza al «meter» un complemento. */
 export const TUCK = 2.5;
 
@@ -55,18 +56,6 @@ export function resolveAdjust(fit: FitConfig, id: string, stage: StageId): FitAd
   return { ...it.base, ...it.stages?.[stage] };
 }
 
-export interface MoodFrame { s: number; dx: number; dy: number; c: [number, number] }
-const IDENTITY: MoodFrame = { s: 1, dx: 0, dy: 0, c: [120, 120] };
-
-export function moodFrame(stage: StageId, mood: Mood): MoodFrame {
-  const f = MOOD_FRAME[stage];
-  const m = f && mood !== 'neutral' ? f[mood] : undefined;
-  return m ? { s: m[0], dx: m[1], dy: m[2], c: f!.c } : IDENTITY;
-}
-
-export const mapPoint = (f: MoodFrame, x: number, y: number): [number, number] =>
-  [f.c[0] + (x - f.c[0]) * f.s + f.dx, f.c[1] + (y - f.c[1]) * f.s + f.dy];
-
 export interface ItemLayout {
   id: string;
   slot: AccSlot;
@@ -92,7 +81,7 @@ export interface ItemLayout {
  * `art` permite al probador usar un PNG local sin tocar el catálogo.
  */
 export function layoutItem(
-  id: string, stage: StageId, mood: Mood = 'neutral',
+  id: string, stage: StageId,
   fit: FitConfig = PROJECT_FIT, art: Record<string, ItemArt> = ITEM_ART,
 ): ItemLayout | null {
   const item = art[id];
@@ -118,19 +107,14 @@ export function layoutItem(
   x += a.x ?? 0;
   y += a.y ?? 0;
 
-  // 3. Encuadre del ánimo.
-  const f = moodFrame(stage, mood);
-  [x, y] = mapPoint(f, x, y);
-  w *= f.s; h *= f.s;
-
-  // 4. Visible → archivo.
+  // 3. Visible → archivo.
   const visible = { x: x - w * item.ax, y: y - h * item.ay, w, h };
   const [b0, b1, b2, b3] = item.bounds ?? [0, 0, 1, 1];
   const iw = w / (b2 - b0);
   const ih = h / (b3 - b1);
   const img = { x: visible.x - b0 * iw, y: visible.y - b1 * ih, w: iw, h: ih };
 
-  // 5. Giro.
+  // 4. Giro.
   const [px, py] = a.pivot ?? [item.ax, item.ay];
   const pivot: [number, number] = [visible.x + w * px, visible.y + h * py];
 
@@ -145,13 +129,43 @@ export function layoutItem(
     layer: a.layer ?? 'front',
     overlay,
     split: sp && slot === 'eyes' && a.spread
-      ? { l: visible.x + w * sp[0], r: visible.x + w * sp[1], spread: a.spread * f.s }
+      ? { l: visible.x + w * sp[0], r: visible.x + w * sp[1], spread: a.spread }
       : undefined,
   };
 }
 
+/** La cara (expresión): mismo lienzo para todos los ánimos, colocada por etapa. */
+export interface FaceLayout {
+  img: Rect;
+  /** Centro de la nariz. */
+  support: [number, number];
+  pivot: [number, number];
+  rotate: number;
+  /** Centro y diámetro de cada ojo. */
+  eyes: { l: [number, number]; r: [number, number]; d: number };
+}
+
+/** Id de la cara en accessory-fit.json (admite x, y, scale, rotate y pivot). */
+export const FACE_ID = 'face';
+
+export function layoutFace(stage: StageId, fit: FitConfig = PROJECT_FIT): FaceLayout {
+  const a = resolveAdjust(fit, FACE_ID, stage);
+  const [fx, fy, fw] = STAGE_ART[stage].face;
+  const x = fx + (a.x ?? 0);
+  const y = fy + (a.y ?? 0);
+  const w = fw * (a.scale ?? 1);
+  const h = w * FACE_RATIO;
+  const img = { x: x - w / 2, y: y - h / 2, w, h };
+  const [px, py] = a.pivot ?? [0.5, 0.5];
+  const eye = (p: readonly number[]): [number, number] => [x + p[0] * w, y + p[1] * w];
+  return {
+    img, support: [x, y], pivot: [img.x + w * px, img.y + h * py], rotate: a.rotate ?? 0,
+    eyes: { l: eye(FACE_EYES.l), r: eye(FACE_EYES.r), d: FACE_EYES.d * w },
+  };
+}
+
 export interface FrogLayout {
-  frame: MoodFrame;
+  face: FaceLayout;
   /** Complementos de detrás de la rana y de delante, ya ordenados. */
   back: ItemLayout[];
   front: ItemLayout[];
@@ -162,25 +176,20 @@ export interface FrogLayout {
 }
 
 export function layoutFrog(
-  stage: StageId, mood: Mood, ids: (string | undefined)[],
+  stage: StageId, ids: (string | undefined)[],
   fit: FitConfig = PROJECT_FIT, art: Record<string, ItemArt> = ITEM_ART,
 ): FrogLayout {
   const items = ids
-    .map((id) => (id ? layoutItem(id, stage, mood, fit, art) : null))
+    .map((id) => (id ? layoutItem(id, stage, fit, art) : null))
     .filter((l): l is ItemLayout => !!l)
     // Orden estable: z y, a igualdad, cuello < sombrero < gafas.
     .sort((p, q) => p.z - q.z || ACC_SLOTS.indexOf(p.slot) - ACC_SLOTS.indexOf(q.slot));
-  const frame = moodFrame(stage, mood);
-  const [ex, ey, span] = STAGE_ART[stage].eyes;
-  const eyeClip = [-1, 1].map((side) => {
-    const [cx, cy] = mapPoint(frame, ex + (side * span) / 2, ey);
-    return { cx, cy, r: span * EYE_BUMP * frame.s };
-  });
+  const face = layoutFace(stage, fit);
   return {
-    frame,
+    face,
     back: items.filter((l) => l.layer === 'back'),
     front: items.filter((l) => l.layer !== 'back'),
-    eyeClip,
-    headClipY: mapPoint(frame, 120, STAGE_ART[stage].neck[1] + TUCK)[1],
+    eyeClip: [face.eyes.l, face.eyes.r].map(([cx, cy]) => ({ cx, cy, r: face.eyes.d * EYE_BUMP })),
+    headClipY: STAGE_ART[stage].neck[1] + TUCK,
   };
 }

@@ -11,6 +11,7 @@ import { InstallCard } from '../features/install';
 import { AccountCard } from '../features/account';
 import { actions } from '../store/actions';
 import { useApp } from '../store/appStore';
+import { useIsAdmin } from '../services/admin';
 import { ui } from '../store/uiStore';
 
 function Card({ title, children, description }: { title: string; description?: string; children: ReactNode }) {
@@ -36,6 +37,7 @@ function Row({ label, description, children }: { label: string; description?: Re
 }
 
 export function SettingsPage() {
+  const isAdmin = useIsAdmin();
   const settings = useApp((s) => s.settings);
   const plan = useApp((s) => s.meta.plan);
   const frogName = useApp((s) => s.frog.name);
@@ -65,6 +67,15 @@ export function SettingsPage() {
       </header>
 
       <AccountCard />
+      {isAdmin && (
+        <Card title="Administración" description="Solo lo ves tú: tu cuenta está en la lista de administradores del servidor.">
+          <Row label="Probador de complementos" description="Coloca complementos y caras en las cinco etapas y publica los ajustes para todos.">
+            <a href="#/admin/probador" className="h-10 px-4 rounded-xl bg-surface-2 border border-line font-semibold inline-flex items-center gap-1.5 hover:border-lily">
+              Abrir <Icon name="chevronRight" size={16} />
+            </a>
+          </Row>
+        </Card>
+      )}
       <InstallCard />
 
       <Card title="Reglas del juego" description="Cómo de exigente es la charca.">

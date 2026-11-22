@@ -55,10 +55,12 @@ const BASE_CATALOG: ShopItem[] = [
   { id: 'eyes-monocle', slot: 'eyes', name: 'Monóculo', price: 140, minLevel: 9, description: 'Muy distinguido.' },
   // Pieles
   { id: 'skin-green', slot: 'skin', name: 'Verde charca', price: 0, minLevel: 1, description: 'El clásico.' },
-  { id: 'skin-blue', slot: 'skin', name: 'Azul dardo', price: 150, minLevel: 5, description: 'Inspirada en las ranas dardo.' },
-  { id: 'skin-pink', slot: 'skin', name: 'Rosa chicle', price: 150, minLevel: 5, description: 'Imposible no verla.' },
-  { id: 'skin-gold', slot: 'skin', name: 'Dorada', price: 500, minLevel: 15, description: 'Solo para ranas muy constantes.' },
-  { id: 'skin-midnight', slot: 'skin', name: 'Medianoche', price: 300, minLevel: 8, premium: true, description: 'Con pequitas como estrellas.' },
+  // Pieles de color ocultas hasta tener sus cuerpos (docs/PIELES.md). Quien ya las tenga
+  // las conserva; mientras tanto todas las ranas se dibujan con el cuerpo verde.
+  { id: 'skin-blue', slot: 'skin', name: 'Azul dardo', price: 150, minLevel: 5, hidden: true, description: 'Inspirada en las ranas dardo.' },
+  { id: 'skin-pink', slot: 'skin', name: 'Rosa chicle', price: 150, minLevel: 5, hidden: true, description: 'Imposible no verla.' },
+  { id: 'skin-gold', slot: 'skin', name: 'Dorada', price: 500, minLevel: 15, hidden: true, description: 'Solo para ranas muy constantes.' },
+  { id: 'skin-midnight', slot: 'skin', name: 'Medianoche', price: 300, minLevel: 8, premium: true, hidden: true, description: 'Con pequitas como estrellas.' },
   // Fondos
   { id: 'bg-pond', slot: 'background', name: 'Charca', price: 0, minLevel: 1, description: 'Su hogar de siempre.' },
   { id: 'bg-sunset', slot: 'background', name: 'Atardecer', price: 120, minLevel: 3, description: 'El sol se esconde tras los juncos.' },

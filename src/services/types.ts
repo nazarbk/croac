@@ -71,6 +71,18 @@ export interface Backend {
   removeFriendship(s: Session, otherId: string): Promise<void>;
   pullState(s: Session): Promise<RemoteState | null>;
   pushState(s: Session, state: unknown, updatedAt: string): Promise<void>;
+  /** ¿Es administrador? Lo decide el servidor (tabla admins), no el navegador. */
+  isAdmin(s: Session): Promise<boolean>;
+  /** Configuración pública de la app (p. ej. los ajustes de los complementos). */
+  getConfig(key: string): Promise<RemoteConfig | null>;
+  /** Solo administradores: lo comprueba la base de datos (RLS). */
+  setConfig(s: Session, key: string, value: unknown): Promise<RemoteConfig>;
+  deleteConfig(s: Session, key: string): Promise<void>;
+}
+
+export interface RemoteConfig {
+  value: unknown;
+  updatedAt: string;
 }
 
 /** Error con un código estable para traducirlo a un mensaje para el usuario. */
@@ -99,6 +111,7 @@ export function friendlyError(e: unknown): string {
     case 'link_expired': return 'El enlace ha caducado o ya se usó. Pide uno nuevo.';
     case 'schema_missing': return 'Falta preparar la base de datos: ejecuta supabase/schema.sql en Supabase (ver docs/CUENTAS.md).';
     case 'misconfigured': return 'La app no está bien conectada al servidor: revisa VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.';
+    case 'forbidden': return 'No tienes permiso para hacer esto.';
     default: return e instanceof Error && e.message ? e.message : 'Algo ha fallado. Inténtalo de nuevo.';
   }
 }
