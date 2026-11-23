@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Frog } from '../components/frog/Frog';
 import { art } from '../components/frog/art';
+import { patioShopItem } from '../domain/patio';
+import { usePatio } from '../services/patio';
 import { Button } from '../components/ui/Button';
 import { Segmented } from '../components/ui/controls';
 import { Coin, Icon } from '../components/ui/Icon';
@@ -55,7 +57,7 @@ function ItemCard({ item }: { item: ShopItem }) {
   } else {
     action = (
       <Button size="sm" variant="coin" className="w-full tabular-nums" onClick={buy} disabled={!check.ok}>
-        <Coin size={15} />{item.price}
+        {item.price === 0 ? 'Gratis' : <><Coin size={15} />{item.price}</>}
       </Button>
     );
   }
@@ -65,6 +67,9 @@ function ItemCard({ item }: { item: ShopItem }) {
       <div className="relative aspect-square rounded-xl overflow-hidden bg-surface-2">
         <Frog level={info.level} mood="happy" equipped={preview} scene={item.slot === 'background'} className="w-full h-full" />
         {item.premium && <span className="absolute top-2 left-2 text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-pro text-white dark:text-[#140d33]">PRO</span>}
+        {item.community && (
+          <span className="absolute top-2 left-2 text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-lily text-on-lily max-w-[85%] truncate">@{item.community.author}</span>
+        )}
         {item.season && !item.premium && (
           <span className="absolute top-2 left-2 text-[11px] font-bold px-1.5 py-0.5 rounded-md bg-amber-400 text-amber-950">T{seasonById(item.season)?.number}</span>
         )}
@@ -86,6 +91,24 @@ function SeasonCountdown({ left }: { left: number }) {
       {left > 1 && <div className="font-display text-xl font-extrabold tabular-nums">{left} días</div>}
       {left <= 1 && <div className="font-display text-base font-extrabold">¡Hoy acaba!</div>}
     </div>
+  );
+}
+
+/** Ganadores del patio: dibujados por usuarios, gratis para todos. */
+function PatioShelf() {
+  const { winners } = usePatio();
+  if (!winners.length) return null;
+  const items = winners.map(patioShopItem);
+  return (
+    <section className="mt-6">
+      <div className="flex items-center justify-between px-1 mb-3">
+        <h2 className="font-display text-lg font-bold">Del patio <span className="text-muted font-normal text-[15px]">· dibujados por la comunidad, gratis</span></h2>
+        <a href={href('patio')} className="text-sm font-semibold text-lily-strong hover:underline shrink-0">Ir al patio</a>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {items.map((i) => <ItemCard key={i.id} item={i} />)}
+      </div>
+    </section>
   );
 }
 
@@ -161,6 +184,7 @@ export function ShopPage() {
         <div className="flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-coin-soft font-bold text-lg tabular-nums shrink-0"><Coin size={20} />{coins}</div>
       </header>
       {season && <SeasonBanner season={season} />}
+      <PatioShelf />
       {season && <h2 className="font-display text-lg font-bold px-1 mt-8">Siempre disponible</h2>}
       <div className={cn('-mx-4 px-4 overflow-x-auto scrollbar-none', season ? 'mt-3' : 'mt-5')}>
         <Segmented<Slot> value={current} onChange={setSlot} options={slots.map((s) => ({ value: s.id, label: s.plural }))} />

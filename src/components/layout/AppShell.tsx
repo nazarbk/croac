@@ -87,6 +87,7 @@ function Sidebar() {
       <div className="mt-auto pt-4 flex flex-col gap-1 border-t border-line">
         <NavLink to="rana" icon="leaf" label={`Mi rana · ${info.frog.name}`} active={route.name === 'rana'} />
         <NavLink to="charca" icon="waves" label="La charca" active={route.name === 'charca'} />
+        <NavLink to="patio" icon="brush" label="El patio" active={route.name === 'patio'} />
         <NavLink to="amigos" icon="users" label="Amigos" active={route.name === 'amigos'} />
         <NavLink
           to="tienda" icon="bag" label="Tienda" active={route.name === 'tienda'}
@@ -203,6 +204,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     )}
                     items={[
                       { label: 'Tienda', icon: 'bag', onSelect: () => navigate('tienda') },
+                      { label: 'El patio', icon: 'brush', onSelect: () => navigate('patio') },
                       { label: 'Amigos', icon: 'users', onSelect: () => navigate('amigos') },
                       { label: 'Historial', icon: 'history', onSelect: () => navigate('historial') },
                       { label: 'Estadísticas', icon: 'chart', onSelect: () => navigate('estadisticas') },

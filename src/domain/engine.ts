@@ -244,7 +244,7 @@ export function undoCompletion(state: AppState, entryId: string, ctx: Ctx): Engi
 
   // Si deshacer rompe un "día perfecto", se retira el bonus.
   if (next.meta.perfectDays.includes(entry.date) && !isPerfectDay(next, entry.date)) {
-    const bonus = next.history.find((h) => h.type === 'bonus' && h.date === entry.date);
+    const bonus = next.history.find((h) => h.type === 'bonus' && h.date === entry.date && !h.ref);
     next = {
       ...next,
       meta: { ...next.meta, perfectDays: next.meta.perfectDays.filter((d) => d !== entry.date) },

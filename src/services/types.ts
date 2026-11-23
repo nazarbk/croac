@@ -26,6 +26,9 @@ export interface Profile {
   week_start: string | null;
   week_xp: number;
   week_tasks: number;
+  /** La semana anterior a week_start (para ver quién ganó cuando la nueva empieza de cero). */
+  last_week_xp?: number;
+  last_week_tasks?: number;
   total_tasks: number;
   updated_at: string;
 }
@@ -78,6 +81,51 @@ export interface Backend {
   /** Solo administradores: lo comprueba la base de datos (RLS). */
   setConfig(s: Session, key: string, value: unknown): Promise<RemoteConfig>;
   deleteConfig(s: Session, key: string): Promise<void>;
+
+  /* Patio del complemento */
+  patioWeek(s: Session): Promise<PatioEntry[]>;
+  /** Público: sin sesión también (para dibujar en cualquier rana los complementos ganadores). */
+  patioWinners(s: Session | null): Promise<PatioWinner[]>;
+  patioSubmit(s: Session, entry: { slot: PatioSlot; name: string; ratio: number }, image: Blob): Promise<PatioEntry>;
+  patioVote(s: Session, entryId: number, on: boolean): Promise<void>;
+  patioReport(s: Session, entryId: number): Promise<void>;
+  patioSetHidden(s: Session, entryId: number, hidden: boolean): Promise<void>;
+  /** Con `imagePath` (dibujo propio) también borra la imagen. */
+  patioDelete(s: Session, entryId: number, imagePath?: string): Promise<void>;
+  /** Dirección pública de una imagen del patio. */
+  patioImageUrl(path: string): string;
+}
+
+export type PatioSlot = 'hat' | 'neck' | 'eyes';
+
+export interface PatioEntry {
+  id: number;
+  slot: PatioSlot;
+  name: string;
+  image_path: string;
+  ratio: number;
+  author: string;
+  votes: number;
+  voted: boolean;
+  mine: boolean;
+  hidden: boolean;
+  /** Solo para administradores. */
+  reports: number;
+  week_start: string;
+  created_at: string;
+}
+
+export interface PatioWinner {
+  id: number;
+  week_start: string;
+  slot: PatioSlot;
+  name: string;
+  image_path: string;
+  ratio: number;
+  author: string;
+  votes: number;
+  /** El ganador es quien pregunta (para darle su premio). */
+  mine: boolean;
 }
 
 export interface RemoteConfig {
@@ -112,6 +160,12 @@ export function friendlyError(e: unknown): string {
     case 'schema_missing': return 'Falta preparar la base de datos: ejecuta supabase/schema.sql en Supabase (ver docs/CUENTAS.md).';
     case 'misconfigured': return 'La app no está bien conectada al servidor: revisa VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.';
     case 'forbidden': return 'No tienes permiso para hacer esto.';
+    case 'patio_no_votes': return 'Ya has usado tus 3 votos de esta semana. Quita uno para votar a otro dibujo.';
+    case 'patio_own_vote': return 'No puedes votar tu propio dibujo.';
+    case 'patio_closed': return 'Ese dibujo ya no se puede votar.';
+    case 'patio_already': return 'Ya has publicado un dibujo esta semana.';
+    case 'patio_needs_profile': return 'Elige antes tu nombre de usuario.';
+    case 'patio_too_big': return 'El dibujo pesa demasiado. Prueba con menos detalles.';
     default: return e instanceof Error && e.message ? e.message : 'Algo ha fallado. Inténtalo de nuevo.';
   }
 }

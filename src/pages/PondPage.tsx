@@ -8,7 +8,7 @@ import { stageForLevel } from '../domain/progression';
 import { cn } from '../lib/cn';
 import { href } from '../lib/router';
 import { currentWeekStart, statsFrom, useAccount } from '../services/account';
-import { social, useSocial, weekScore } from '../services/social';
+import { lastWeekScore, social, useSocial, weekScore } from '../services/social';
 import type { Profile } from '../services/types';
 import { appStore, useApp, useToday } from '../store/appStore';
 import { useUi } from '../store/uiStore';
@@ -34,6 +34,8 @@ interface PondFrog {
   equipped: Profile['equipped'];
   streak: number;
   week: { xp: number; tasks: number };
+  last: { xp: number; tasks: number };
+  xp: number;
   total: number;
 }
 
@@ -73,6 +75,7 @@ export function PondPage() {
     return {
       id: 'me', me: true, name: frog.name, username: profile?.username ?? 'tú', level: st.level, mood: st.mood,
       equipped: frog.equipped, streak: st.streak, week: { xp: st.week_xp, tasks: st.week_tasks }, total: st.total_tasks,
+      last: { xp: st.last_week_xp ?? 0, tasks: st.last_week_tasks ?? 0 }, xp: st.xp,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frog, history, today, profile]);
@@ -82,12 +85,16 @@ export function PondPage() {
     ...friends.map((p) => ({
       id: p.id, me: false, name: p.frog_name, username: p.username, level: p.level, mood: p.mood,
       equipped: p.equipped, streak: p.streak, week: weekScore(p, week), total: p.total_tasks,
+      last: lastWeekScore(p, week), xp: p.xp,
     })),
   ], [me, friends, week]);
 
   const ranking = [...frogs].sort((a, b) => b.week.xp - a.week.xp || b.week.tasks - a.week.tasks);
   const leaderId = ranking.length > 1 && ranking[0].week.xp > 0 ? ranking[0].id : null;
   const maxXp = Math.max(1, ...ranking.map((f) => f.week.xp));
+  // El lunes la clasificación vuelve a cero: se explica y se enseña quién ganó la semana pasada.
+  const freshWeek = ranking.every((f) => f.week.xp === 0);
+  const lastWinner = [...frogs].sort((a, b) => b.last.xp - a.last.xp)[0];
   const visible = frogs.slice(0, SLOTS.length);
 
   return (
@@ -142,6 +149,14 @@ export function PondPage() {
             <h2 className="font-display text-lg font-bold">Esta semana</h2>
             <a href={href('amigos')} className="text-sm font-semibold text-lily-strong hover:underline">Gestionar amigos</a>
           </div>
+          {freshWeek && (
+            <div className="mb-3 rounded-2xl border border-lily/30 bg-lily-soft px-4 py-3 text-[14px] leading-snug">
+              <strong>¡Semana nueva!</strong> La clasificación empieza de cero cada lunes; los niveles y la experiencia de cada rana siguen intactos.
+              {lastWinner && lastWinner.last.xp > 0 && (
+                <> La semana pasada ganó <strong>{lastWinner.me ? 'tu rana' : lastWinner.name}</strong> con {lastWinner.last.xp} XP.</>
+              )}
+            </div>
+          )}
           <ol className="flex flex-col gap-2">
             {ranking.map((f, i) => (
               <li key={f.id} className={cn('flex items-center gap-3 rounded-2xl border bg-surface shadow-card p-2.5 pr-4', f.me ? 'border-lily/50' : 'border-line')}>
@@ -157,7 +172,9 @@ export function PondPage() {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="font-bold tabular-nums">{f.week.xp} XP</div>
-                  <div className="text-xs text-muted tabular-nums">{f.week.tasks} {f.week.tasks === 1 ? 'tarea' : 'tareas'}</div>
+                  <div className="text-xs text-muted tabular-nums">
+                    {freshWeek && f.last.xp > 0 ? `semana pasada ${f.last.xp} XP` : `${f.week.tasks} ${f.week.tasks === 1 ? 'tarea' : 'tareas'}`}
+                  </div>
                 </div>
               </li>
             ))}
@@ -180,8 +197,8 @@ export function PondPage() {
             <Frog level={selected.level} mood={selected.mood} equipped={selected.equipped} scene className="w-40 h-40 mx-auto rounded-[1.5rem]" />
             {!selected.me && <p className="text-muted mt-3">@{selected.username}</p>}
             <p className="font-semibold mt-1">{stageForLevel(selected.level).name} · nivel {selected.level}</p>
-            <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
-              {[['Esta semana', `${selected.week.xp} XP`], ['Racha', `${selected.streak} ${selected.streak === 1 ? 'día' : 'días'}`], ['Total', `${selected.total} tareas`]].map(([k, v]) => (
+            <dl className="mt-4 grid grid-cols-2 gap-2 text-center">
+              {[['Esta semana', `${selected.week.xp} XP`], ['Semana pasada', `${selected.last.xp} XP`], ['Racha', `${selected.streak} ${selected.streak === 1 ? 'día' : 'días'}`], ['Total', `${selected.total} tareas`]].map(([k, v]) => (
                 <div key={k} className="rounded-xl bg-surface-2 p-2.5">
                   <dt className="text-xs text-muted">{k}</dt>
                   <dd className="font-bold tabular-nums mt-0.5">{v}</dd>

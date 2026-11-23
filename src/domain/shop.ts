@@ -16,6 +16,8 @@ export interface ShopItem {
   season?: string;
   /** Oculto en la tienda (p. ej. pendiente de revisar el diseño). */
   hidden?: boolean;
+  /** Dibujado por un usuario y ganador del patio: autor y semana. */
+  community?: { author: string; week: string };
 }
 
 export const SLOTS: { id: Slot; label: string; plural: string }[] = [
@@ -72,7 +74,17 @@ const BASE_CATALOG: ShopItem[] = [
 /** Todo lo que existe: la tienda fija y los artículos de todas las temporadas. */
 export const CATALOG: ShopItem[] = [...BASE_CATALOG, ...SEASONS.flatMap((s) => s.items)];
 
-export const itemById = (id: string | undefined) => CATALOG.find((i) => i.id === id);
+/**
+ * Complementos del patio (dibujados por los usuarios y ganadores de su semana). Llegan del
+ * servidor al arrancar (services/patio.ts) y se tratan como cualquier otro artículo.
+ */
+let COMMUNITY: ShopItem[] = [];
+export function setCommunityItems(items: ShopItem[]) {
+  COMMUNITY = items;
+}
+export const communityItems = () => COMMUNITY;
+
+export const itemById = (id: string | undefined) => CATALOG.find((i) => i.id === id) ?? COMMUNITY.find((i) => i.id === id);
 
 export type PurchaseCheck =
   | { ok: true }

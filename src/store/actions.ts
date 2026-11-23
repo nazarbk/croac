@@ -1,5 +1,6 @@
 import { createInitialState, LIST_COLORS, STARTER_TASKS } from '../domain/defaults';
 import { maxDate, type DateStr } from '../domain/dates';
+import * as patio from '../domain/patio';
 import * as engine from '../domain/engine';
 import { uid } from '../domain/id';
 import { parseQuickAdd } from '../domain/parser';
@@ -216,6 +217,37 @@ export const actions = {
 
   toggleEquip(itemId: string) {
     patch((s) => engine.toggleEquip(s, itemId));
+  },
+
+  /* ---------- Patio ---------- */
+
+  buyPatioCanvas() {
+    const r = patio.buyCanvas(appStore.get(), getCtx());
+    if (r.ok) appStore.set(r.state);
+    return r.ok;
+  },
+
+  spendPatioCanvas() {
+    patch((s) => patio.spendCanvas(s));
+  },
+
+  refundPatioCanvas() {
+    patch((s) => ({ ...s, meta: { ...s.meta, patioCanvases: patio.canvasesLeft(s) + 1 } }));
+  },
+
+  /** Premios del patio pendientes (el ganador es quien usa la app). Devuelve los cobrados. */
+  claimPatioPrizes(wins: { id: number; slot: patio.PatioSlot; name: string }[]) {
+    let state = appStore.get();
+    const claimed: string[] = [];
+    for (const w of wins) {
+      const r = patio.claimPatioPrize(state, w, getCtx());
+      if (r.claimed) {
+        state = r.state;
+        claimed.push(w.name);
+      }
+    }
+    if (claimed.length) appStore.set(state);
+    return claimed;
   },
 
   renameFrog(name: string) {

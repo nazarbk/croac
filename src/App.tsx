@@ -26,9 +26,11 @@ import { ErrorBoundary } from './features/ErrorBoundary';
 import { ScheduleAgain } from './features/ScheduleAgain';
 import { WhatsNew } from './features/WhatsNew';
 import { NewsPage } from './pages/NewsPage';
+import { PatioPage } from './pages/PatioPage';
 import { tickClock, useApp } from './store/appStore';
 import { startAdminWatch, useAdminStatus } from './services/admin';
 import { loadRemoteFit } from './services/appConfig';
+import { startPatio } from './services/patio';
 
 /**
  * Probador de complementos (#/admin/probador; también #/dev/wardrobe). Solo lo abre un
@@ -50,6 +52,7 @@ const PAGES: Record<RouteName, { title: string; Component: () => React.ReactElem
   estadisticas: { title: 'Estadísticas', Component: StatsPage },
   ajustes: { title: 'Ajustes', Component: SettingsPage },
   novedades: { title: 'Novedades', Component: NewsPage },
+  patio: { title: 'El patio', Component: PatioPage },
 };
 
 function useTheme() {
@@ -88,6 +91,7 @@ export default function App() {
   useEffect(() => {
     void account.restore();
     startAdminWatch();
+    startPatio();
     void loadRemoteFit();
   }, []);
   const adminStatus = useAdminStatus();

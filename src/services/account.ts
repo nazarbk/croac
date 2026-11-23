@@ -140,14 +140,22 @@ export function currentWeekStart(today: DateStr): DateStr {
 export function statsFrom(state: AppState): ProfileStats {
   const { today } = getCtx();
   const week = currentWeekStart(today);
+  const prev = addDays(week, -7);
   let weekXp = 0;
   let weekTasks = 0;
+  let lastXp = 0;
+  let lastTasks = 0;
   let total = 0;
   for (const h of state.history) {
     if (h.type === 'complete') total++;
-    if (h.date < week || h.date > addDays(week, 6)) continue;
-    if (h.type === 'complete') weekTasks++;
-    if ((h.type === 'complete' || h.type === 'bonus') && h.xp > 0) weekXp += h.xp;
+    const gained = (h.type === 'complete' || h.type === 'bonus') && h.xp > 0 ? h.xp : 0;
+    if (h.date >= week && h.date <= addDays(week, 6)) {
+      if (h.type === 'complete') weekTasks++;
+      weekXp += gained;
+    } else if (h.date >= prev && h.date < week) {
+      if (h.type === 'complete') lastTasks++;
+      lastXp += gained;
+    }
   }
   return {
     frog_name: state.frog.name,
@@ -159,6 +167,8 @@ export function statsFrom(state: AppState): ProfileStats {
     week_start: week,
     week_xp: weekXp,
     week_tasks: weekTasks,
+    last_week_xp: lastXp,
+    last_week_tasks: lastTasks,
     total_tasks: total,
   };
 }

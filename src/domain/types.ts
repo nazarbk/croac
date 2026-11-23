@@ -85,6 +85,8 @@ export interface Meta {
   onboarded: boolean;
   createdAt: number;
   plan: Plan;
+  /** Lienzos del patio comprados y sin usar. */
+  patioCanvases?: number;
 }
 
 export type HistoryType = 'complete' | 'penalty' | 'bonus' | 'purchase';
@@ -111,6 +113,8 @@ export interface HistoryEntry {
   /** Para deshacer una compleción. */
   prev?: { dueDate: DateStr | null; status: TaskStatus; subtasks: Subtask[]; completedAt: number | null };
   details?: PenaltyDetail[];
+  /** Origen de compras y premios especiales (p. ej. «patio-canvas», «patio-win:12»). */
+  ref?: string;
 }
 
 export interface AppNotification {

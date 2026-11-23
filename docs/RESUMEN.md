@@ -111,6 +111,7 @@ croac/
 - Gestos en móvil: deslizar a la derecha completa, a la izquierda pospone.
 - Rana con 5 etapas, 5 ánimos, tienda, armario; celebraciones al subir de nivel.
 - Estadísticas: racha, días perfectos, barras de 14 días, mapa de constancia, hábitos, por lista.
+- El patio del complemento: cada semana se compra un lienzo (150 monedas), se dibuja un gorro, cuello o gafas, se vota (3 votos) y el ganador entra gratis en la tienda con premio para su autor (`docs/PATIO.md`).
 - Cuenta opcional: sincronización entre dispositivos, recuperación de contraseña, borrar cuenta, amigos por código/enlace (la invitación se envía sola), charca compartida ilustrada y ranking semanal.
 - PWA: instalable (Android, iOS, escritorio), funciona sin conexión, iconos y pantallas de arranque.
 - Ajustes: margen de penalización, vacaciones, inicio del día, tema, notificaciones, sonidos, orden, plan (Pro en demo), exportar/importar JSON, borrar todo.

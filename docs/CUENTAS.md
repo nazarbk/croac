@@ -87,6 +87,7 @@ Para probar en local, crea un archivo `.env` (no se sube a Git) copiando `.env.e
 | `friendships` | Solicitudes y amistades (`pending` → `accepted`) |
 | `user_state` | Copia completa del estado de la app de cada usuario (JSON) para sincronizar |
 | `admins` | Quién es administrador. Sin acceso desde la API: solo se cambia en el SQL Editor |
+| `patio_entries`, `patio_votes`, `patio_reports` | El patio del complemento: dibujos, votos y denuncias (ver `docs/PATIO.md`) |
 | `app_config` | Configuración pública de la app (p. ej. `accessory-fit`, los ajustes de los complementos publicados desde el probador). La lee cualquiera; solo la escriben administradores |
 
 | Función | Para qué |
@@ -94,11 +95,16 @@ Para probar en local, crea un archivo `.env` (no se sube a Git) copiando `.env.e
 | `send_friend_request(code)` | Envía la solicitud por código sin exponer otros perfiles; si la otra persona ya te la había enviado, la acepta. Máximo 20 por hora. |
 | `username_available(name)` | Comprueba el nombre antes de crear la cuenta. |
 | `delete_my_account()` | «Borrar mi cuenta» en Ajustes: borra perfil, amistades, copia en la nube y el usuario. |
+| `patio_week()` / `patio_winners()` | Dibujos de la semana y ganadores del patio. |
 | `is_admin()` | ¿La sesión que llama es de un administrador? (enseña el probador y Ajustes → Administración). |
 
 - Cada usuario solo puede leer y escribir lo suyo y ver el perfil de sus amigos (y de quien le ha enviado solicitud).
 - La app usa la API REST de Supabase directamente (`src/services/backend.ts`), sin SDK. Cambiar de proveedor = otra implementación de la interfaz `Backend` (`src/services/types.ts`).
 - El ranking usa las estadísticas que publica cada dispositivo. Entre amigos es suficiente, pero se puede falsear; ver `docs/AUDITORIA.md`.
+
+## Actualizar a la v1.3 (el patio)
+
+Vuelve a ejecutar `supabase/schema.sql` entero en el SQL Editor (se puede repetir: no borra datos). Añade las tablas y el bucket de imágenes del patio y dos columnas al perfil (`last_week_xp`, `last_week_tasks`) para enseñar en la charca quién ganó la semana pasada. Mientras no lo ejecutes, la app sigue funcionando: el patio muestra un aviso y la charca simplemente no enseña la semana pasada.
 
 ## Administrador (probador de complementos)
 

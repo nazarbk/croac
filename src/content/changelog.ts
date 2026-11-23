@@ -16,6 +16,17 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.3.0',
+    date: '2026-11-23',
+    title: 'El patio del complemento',
+    art: 'ui/celebrate.webp',
+    changes: [
+      { kind: 'nuevo', text: 'El patio: compra un lienzo, dibuja un gorro, algo para el cuello o unas gafas y publícalo para que lo vote todo el mundo.' },
+      { kind: 'nuevo', text: 'Cada semana tienes 3 votos. El dibujo más votado entra gratis en la tienda con la firma de su autor, que además gana 200 monedas.' },
+      { kind: 'mejora', text: 'La charca avisa cuando empieza la semana: la clasificación vuelve a cero cada lunes, pero la experiencia y el nivel de cada rana siguen intactos. Y ahora puedes ver quién ganó la semana pasada.' },
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2026-11-22',
     title: 'Ranas renovadas',

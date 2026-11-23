@@ -48,6 +48,7 @@
 | P13 | Baja | PWA | La caché del service worker no tiene límite de entradas | Limpiar entradas viejas al activar y limitar a N recursos |
 | P14 | Baja | Privacidad | Google Fonts se carga desde Google (transferencia de IP a terceros, problemático en la UE) | Alojar las fuentes en `/public/fonts` |
 | P15 | Baja | Mantenimiento | No hay `package-lock.json` en el repositorio | Hacer `npm install` local y subir el lockfile para builds reproducibles |
+| P17 | Media | Patio | El precio del lienzo y el premio del ganador se cobran en el dispositivo (como el resto de monedas): con la consola se pueden conseguir lienzos sin pagar. Lo demás (una entrada por semana, votos, denuncias, ganador) lo valida el servidor | Libro de monedas en servidor (`coin_events`) y una función `buy_canvas()` que descuente y conceda el lienzo |
 | P16 | Baja | Internacionalización | Textos en español escritos en los componentes | Extraer a un diccionario (`i18n/es.ts`) antes de traducir |
 
 ## 3. Arquitectura: valoración

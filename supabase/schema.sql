@@ -189,3 +189,181 @@ drop policy if exists "config: borrar (admins)" on public.app_config;
 create policy "config: borrar (admins)" on public.app_config for delete to authenticated using (public.is_admin());
 grant select on public.app_config to anon, authenticated;
 grant insert, update, delete on public.app_config to authenticated;
+
+-- ---------- Semana anterior en el perfil (v1.3) ----------
+-- Para que el lunes, con la clasificación a cero, se vea quién ganó la semana pasada.
+alter table public.profiles add column if not exists last_week_xp int not null default 0;
+alter table public.profiles add column if not exists last_week_tasks int not null default 0;
+
+-- ---------- Patio del complemento (v1.3) ----------
+-- Cada semana (de lunes a domingo, hora de Madrid) cada usuario puede publicar un dibujo
+-- (necesita un lienzo, que se compra con monedas en la app). Todos votan (3 votos por
+-- semana, no a uno mismo). El más votado de cada semana entra gratis en la tienda.
+-- Los dibujos se guardan en Storage (cubo público «patio», carpeta = id del usuario).
+
+create or replace function public.patio_current_week() returns date
+language sql stable as $$ select (date_trunc('week', now() at time zone 'Europe/Madrid'))::date $$;
+
+create table if not exists public.patio_entries (
+  id bigint generated always as identity primary key,
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  author text not null default '',
+  week_start date not null default public.patio_current_week(),
+  slot text not null check (slot in ('hat', 'neck', 'eyes')),
+  name text not null check (char_length(btrim(name)) between 1 and 24),
+  image_path text not null check (image_path ~ '^[0-9a-f-]{36}/[A-Za-z0-9._-]{1,80}$'),
+  ratio real not null check (ratio > 0.05 and ratio < 20),
+  hidden boolean not null default false,
+  reports int not null default 0,
+  created_at timestamptz not null default now(),
+  unique (user_id, week_start)
+);
+create index if not exists patio_entries_week on public.patio_entries (week_start);
+alter table public.patio_entries enable row level security;
+
+create table if not exists public.patio_votes (
+  entry_id bigint not null references public.patio_entries(id) on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  week_start date not null default public.patio_current_week(),
+  created_at timestamptz not null default now(),
+  primary key (entry_id, user_id)
+);
+create index if not exists patio_votes_user_week on public.patio_votes (user_id, week_start);
+alter table public.patio_votes enable row level security;
+
+create table if not exists public.patio_reports (
+  entry_id bigint not null references public.patio_entries(id) on delete cascade,
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (entry_id, user_id)
+);
+alter table public.patio_reports enable row level security;
+
+-- Al publicar: el servidor pone autor, semana y estado (no se fía del navegador).
+create or replace function public.patio_entries_before_insert() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare uname text;
+begin
+  select username into uname from profiles where id = auth.uid();
+  if uname is null then raise exception 'patio_needs_profile'; end if;
+  if split_part(new.image_path, '/', 1) <> auth.uid()::text then raise exception 'patio_bad_image'; end if;
+  new.user_id := auth.uid();
+  new.author := uname;
+  new.week_start := patio_current_week();
+  new.hidden := false;
+  new.reports := 0;
+  new.created_at := now();
+  return new;
+end $$;
+drop trigger if exists patio_entries_bi on public.patio_entries;
+create trigger patio_entries_bi before insert on public.patio_entries
+  for each row execute function public.patio_entries_before_insert();
+
+-- Votar: solo dibujos visibles de esta semana, no el propio y como mucho 3 por semana.
+create or replace function public.patio_votes_before_insert() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare e patio_entries%rowtype; used int;
+begin
+  new.user_id := auth.uid();
+  new.week_start := patio_current_week();
+  perform pg_advisory_xact_lock(hashtext('patio-votes-' || new.user_id::text));
+  select * into e from patio_entries where id = new.entry_id;
+  if not found or e.hidden or e.week_start <> new.week_start then raise exception 'patio_closed'; end if;
+  if e.user_id = new.user_id then raise exception 'patio_own_vote'; end if;
+  select count(*) into used from patio_votes where user_id = new.user_id and week_start = new.week_start;
+  if used >= 3 then raise exception 'patio_no_votes'; end if;
+  return new;
+end $$;
+drop trigger if exists patio_votes_bi on public.patio_votes;
+create trigger patio_votes_bi before insert on public.patio_votes
+  for each row execute function public.patio_votes_before_insert();
+
+-- Denunciar: con 3 denuncias el dibujo se oculta solo (un administrador puede volver a mostrarlo).
+create or replace function public.patio_reports_after_insert() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  update patio_entries set reports = reports + 1, hidden = hidden or reports + 1 >= 3 where id = new.entry_id;
+  return new;
+end $$;
+drop trigger if exists patio_reports_ai on public.patio_reports;
+create trigger patio_reports_ai after insert on public.patio_reports
+  for each row execute function public.patio_reports_after_insert();
+
+-- Permisos
+drop policy if exists "patio: ver (anónimos)" on public.patio_entries;
+create policy "patio: ver (anónimos)" on public.patio_entries for select to anon using (not hidden);
+drop policy if exists "patio: ver" on public.patio_entries;
+create policy "patio: ver" on public.patio_entries for select to authenticated
+  using (not hidden or user_id = auth.uid() or public.is_admin());
+drop policy if exists "patio: publicar" on public.patio_entries;
+create policy "patio: publicar" on public.patio_entries for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "patio: ocultar (admins)" on public.patio_entries;
+create policy "patio: ocultar (admins)" on public.patio_entries for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "patio: borrar" on public.patio_entries;
+create policy "patio: borrar" on public.patio_entries for delete to authenticated
+  using ((user_id = auth.uid() and week_start = public.patio_current_week()) or public.is_admin());
+
+drop policy if exists "patio votos: ver los míos" on public.patio_votes;
+create policy "patio votos: ver los míos" on public.patio_votes for select to authenticated using (user_id = auth.uid());
+drop policy if exists "patio votos: votar" on public.patio_votes;
+create policy "patio votos: votar" on public.patio_votes for insert to authenticated with check (user_id = auth.uid());
+drop policy if exists "patio votos: quitar" on public.patio_votes;
+create policy "patio votos: quitar" on public.patio_votes for delete to authenticated
+  using (user_id = auth.uid() and week_start = public.patio_current_week());
+
+drop policy if exists "patio denuncias: ver las mías" on public.patio_reports;
+create policy "patio denuncias: ver las mías" on public.patio_reports for select to authenticated using (user_id = auth.uid());
+drop policy if exists "patio denuncias: denunciar" on public.patio_reports;
+create policy "patio denuncias: denunciar" on public.patio_reports for insert to authenticated with check (user_id = auth.uid());
+
+grant select on public.patio_entries to anon, authenticated;
+grant insert, delete on public.patio_entries to authenticated;
+grant update (hidden) on public.patio_entries to authenticated;
+grant select, insert, delete on public.patio_votes to authenticated;
+grant select, insert on public.patio_reports to authenticated;
+
+-- Dibujos de esta semana con sus votos (los votos de cada uno son privados: solo se ve el total).
+create or replace function public.patio_week()
+returns table (id bigint, slot text, name text, image_path text, ratio real, author text,
+  votes int, voted boolean, mine boolean, hidden boolean, reports int, week_start date, created_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select e.id, e.slot, e.name, e.image_path, e.ratio, e.author,
+    (select count(*) from patio_votes v where v.entry_id = e.id)::int,
+    exists (select 1 from patio_votes v where v.entry_id = e.id and v.user_id = auth.uid()),
+    e.user_id = auth.uid(), e.hidden, case when public.is_admin() then e.reports else 0 end,
+    e.week_start, e.created_at
+  from patio_entries e
+  where e.week_start = patio_current_week()
+    and (not e.hidden or e.user_id = auth.uid() or public.is_admin())
+  order by e.created_at desc;
+$$;
+revoke all on function public.patio_week() from public, anon;
+grant execute on function public.patio_week() to authenticated;
+
+-- Ganadores de las semanas cerradas: el más votado de cada una (en empate, el primero publicado).
+create or replace function public.patio_winners()
+returns table (id bigint, week_start date, slot text, name text, image_path text, ratio real,
+  author text, votes int, mine boolean)
+language sql stable security definer set search_path = public as $$
+  select distinct on (e.week_start) e.id, e.week_start, e.slot, e.name, e.image_path, e.ratio,
+    e.author, c.votes, e.user_id = auth.uid()
+  from patio_entries e
+  cross join lateral (select count(*)::int as votes from patio_votes v where v.entry_id = e.id) c
+  where e.week_start < patio_current_week() and not e.hidden and c.votes > 0
+  order by e.week_start desc, c.votes desc, e.created_at asc;
+$$;
+grant execute on function public.patio_winners() to anon, authenticated;
+grant execute on function public.patio_current_week() to anon, authenticated;
+
+-- Imágenes: cubo público (cualquiera las ve) y cada usuario solo sube a su carpeta.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('patio', 'patio', true, 307200, array['image/png', 'image/webp'])
+on conflict (id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+drop policy if exists "patio: subir a mi carpeta" on storage.objects;
+create policy "patio: subir a mi carpeta" on storage.objects for insert to authenticated
+  with check (bucket_id = 'patio' and (storage.foldername(name))[1] = auth.uid()::text);
+drop policy if exists "patio: borrar de mi carpeta" on storage.objects;
+create policy "patio: borrar de mi carpeta" on storage.objects for delete to authenticated
+  using (bucket_id = 'patio' and (storage.foldername(name))[1] = auth.uid()::text);

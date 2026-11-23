@@ -5,7 +5,7 @@
  *   VITE_SUPABASE_ANON_KEY=sb_publishable_...   (o la clave «anon» antigua, eyJ...)
  * El esquema de la base de datos está en supabase/schema.sql.
  */
-import { ApiError, type Backend, type Friendship, type Profile, type RemoteConfig, type RemoteState, type Session } from './types';
+import { ApiError, type Backend, type Friendship, type PatioEntry, type PatioWinner, type Profile, type RemoteConfig, type RemoteState, type Session } from './types';
 
 const clean = (v: unknown) => (typeof v === 'string' ? v.trim().replace(/^["']|["']$/g, '') : '');
 
@@ -73,6 +73,11 @@ function toApiError(status: number, body: Record<string, string> | null): ApiErr
   if (raw.includes('23505') || raw.includes('duplicate key')) return new ApiError('username_taken', msg, status);
   if (raw.includes('not_found')) return new ApiError('not_found', msg, status);
   if (raw.includes(' self')) return new ApiError('self', msg, status);
+  for (const c of ['patio_no_votes', 'patio_own_vote', 'patio_closed', 'patio_needs_profile', 'patio_bad_image']) {
+    if (raw.includes(c)) return new ApiError(c, msg, status);
+  }
+  if (raw.includes('patio_entries_user_id_week_start_key') || (raw.includes('23505') && raw.includes('patio_entries'))) return new ApiError('patio_already', msg, status);
+  if (raw.includes('payload too large') || raw.includes('exceeded the maximum allowed size') || status === 413) return new ApiError('patio_too_big', msg, status);
   if (raw.includes('42501') || raw.includes('row-level security') || raw.includes('permission denied')) return new ApiError('forbidden', msg, status);
   if (status === 401 || raw.includes('jwt expired')) return new ApiError('session_expired', msg, status);
   return new ApiError('server', msg, status);
@@ -101,6 +106,23 @@ function decodeJwt(token: string): { sub?: string; email?: string; exp?: number 
 }
 
 const redirect = (to: string) => (to ? `?redirect_to=${encodeURIComponent(to)}` : '');
+
+/**
+ * Columnas añadidas después (last_week_*): si el esquema de Supabase aún no las tiene, se
+ * reintenta sin ellas para que el perfil se siga publicando.
+ */
+const NEW_PROFILE_COLUMNS = ['last_week_xp', 'last_week_tasks'];
+async function withoutNewColumns<P extends object, T>(data: P, send: (d: P) => Promise<T>): Promise<T> {
+  try {
+    return await send(data);
+  } catch (e) {
+    const missing = e instanceof ApiError && NEW_PROFILE_COLUMNS.some((c) => e.message.includes(c));
+    if (!missing) throw e;
+    const rest = { ...data } as Record<string, unknown>;
+    for (const c of NEW_PROFILE_COLUMNS) delete rest[c];
+    return send(rest as P);
+  }
+}
 
 export const backend: Backend = {
   enabled: Boolean(URL_ && KEY),
@@ -157,17 +179,17 @@ export const backend: Backend = {
   },
 
   async createProfile(s, username, stats) {
-    const rows = await call<Profile[]>('/rest/v1/profiles', {
+    const rows = await withoutNewColumns(stats, (st) => call<Profile[]>('/rest/v1/profiles', {
       method: 'POST', token: s.accessToken, prefer: 'return=representation',
-      body: JSON.stringify({ id: s.userId, username, ...stats }),
-    });
+      body: JSON.stringify({ id: s.userId, username, ...st }),
+    }));
     return rows[0];
   },
 
   async updateProfile(s, patch) {
-    await call(`/rest/v1/profiles?id=eq.${s.userId}`, {
-      method: 'PATCH', token: s.accessToken, body: JSON.stringify({ ...patch, updated_at: new Date().toISOString() }),
-    });
+    await withoutNewColumns(patch, (p) => call(`/rest/v1/profiles?id=eq.${s.userId}`, {
+      method: 'PATCH', token: s.accessToken, body: JSON.stringify({ ...p, updated_at: new Date().toISOString() }),
+    }));
   },
 
   async listFriendships(s) {
@@ -238,5 +260,74 @@ export const backend: Backend = {
 
   async deleteConfig(s, key) {
     await call(`/rest/v1/app_config?key=eq.${encodeURIComponent(key)}`, { method: 'DELETE', token: s.accessToken });
+  },
+
+  async patioWeek(s) {
+    return call<PatioEntry[]>('/rest/v1/rpc/patio_week', { method: 'POST', token: s.accessToken, body: '{}' });
+  },
+
+  async patioWinners(s) {
+    return call<PatioWinner[]>('/rest/v1/rpc/patio_winners', { method: 'POST', token: s?.accessToken, body: '{}' });
+  },
+
+  async patioSubmit(s, entry, image) {
+    const ext = image.type === 'image/webp' ? 'webp' : 'png';
+    const path = `${s.userId}/${Date.now().toString(36)}.${ext}`;
+    let res: Response;
+    try {
+      res = await fetch(`${URL_}/storage/v1/object/patio/${path}`, {
+        method: 'POST', body: image,
+        headers: { apikey: KEY, Authorization: `Bearer ${s.accessToken}`, 'Content-Type': image.type, 'Cache-Control': 'max-age=31536000' },
+      });
+    } catch {
+      throw new ApiError('network', 'Sin conexión', 0);
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      throw toApiError(res.status, body);
+    }
+    try {
+      const rows = await call<PatioEntry[]>('/rest/v1/patio_entries?select=*', {
+        method: 'POST', token: s.accessToken, prefer: 'return=representation',
+        body: JSON.stringify({ slot: entry.slot, name: entry.name.trim(), ratio: entry.ratio, image_path: path }),
+      });
+      return { ...rows[0], votes: 0, voted: false, mine: true, reports: 0 };
+    } catch (e) {
+      // No dejar la imagen huérfana si no se pudo publicar.
+      await fetch(`${URL_}/storage/v1/object/patio/${path}`, { method: 'DELETE', headers: { apikey: KEY, Authorization: `Bearer ${s.accessToken}` } }).catch(() => undefined);
+      throw e;
+    }
+  },
+
+  async patioVote(s, entryId, on) {
+    if (on) {
+      await call('/rest/v1/patio_votes', { method: 'POST', token: s.accessToken, body: JSON.stringify({ entry_id: entryId }) });
+    } else {
+      await call(`/rest/v1/patio_votes?entry_id=eq.${entryId}&user_id=eq.${s.userId}`, { method: 'DELETE', token: s.accessToken });
+    }
+  },
+
+  async patioReport(s, entryId) {
+    try {
+      await call('/rest/v1/patio_reports', { method: 'POST', token: s.accessToken, body: JSON.stringify({ entry_id: entryId }) });
+    } catch (e) {
+      // Denunciar dos veces no es un error para quien lo hace.
+      if (!(e instanceof ApiError && e.status === 409)) throw e;
+    }
+  },
+
+  async patioSetHidden(s, entryId, hidden) {
+    await call(`/rest/v1/patio_entries?id=eq.${entryId}`, { method: 'PATCH', token: s.accessToken, body: JSON.stringify({ hidden }) });
+  },
+
+  async patioDelete(s, entryId, imagePath) {
+    await call(`/rest/v1/patio_entries?id=eq.${entryId}`, { method: 'DELETE', token: s.accessToken });
+    if (imagePath?.startsWith(`${s.userId}/`)) {
+      await fetch(`${URL_}/storage/v1/object/patio/${imagePath}`, { method: 'DELETE', headers: { apikey: KEY, Authorization: `Bearer ${s.accessToken}` } }).catch(() => undefined);
+    }
+  },
+
+  patioImageUrl(path) {
+    return `${URL_}/storage/v1/object/public/patio/${path}`;
   },
 };

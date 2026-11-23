@@ -1,3 +1,4 @@
+import { addDays } from '../domain/dates';
 import { createStore, useStore } from '../store/createStore';
 import { accountStore, withSession } from './account';
 import { backend } from './backend';
@@ -72,6 +73,13 @@ export const social = {
 /** Datos de la semana en curso (si el perfil es de otra semana, cuenta 0). */
 export function weekScore(p: Profile, weekStart: string) {
   return p.week_start === weekStart ? { xp: p.week_xp, tasks: p.week_tasks } : { xp: 0, tasks: 0 };
+}
+
+/** Datos de la semana anterior a weekStart (lo que se ve el lunes, cuando todo empieza de cero). */
+export function lastWeekScore(p: Pick<Profile, 'week_start' | 'week_xp' | 'week_tasks' | 'last_week_xp' | 'last_week_tasks'>, weekStart: string) {
+  if (p.week_start === weekStart) return { xp: p.last_week_xp ?? 0, tasks: p.last_week_tasks ?? 0 };
+  if (p.week_start === addDays(weekStart, -7)) return { xp: p.week_xp, tasks: p.week_tasks };
+  return { xp: 0, tasks: 0 };
 }
 
 /** Enlace para invitar: abre la app en Amigos con el código rellenado. */

@@ -5,7 +5,8 @@ import { Button } from '../components/ui/Button';
 import { inputClass, ProgressBar } from '../components/ui/controls';
 import { Coin, Icon } from '../components/ui/Icon';
 import { DIFFICULTIES, LATE_FACTOR, PERFECT_DAY_BONUS, STAGES, STREAK_BONUS_MAX_STEPS, STREAK_BONUS_PER_STEP } from '../domain/progression';
-import { CATALOG, SLOTS } from '../domain/shop';
+import { CATALOG, communityItems, SLOTS } from '../domain/shop';
+import { usePatio } from '../services/patio';
 import { cn } from '../lib/cn';
 import { href } from '../lib/router';
 import { actions } from '../store/actions';
@@ -21,7 +22,8 @@ export function FrogPage() {
   const { due, overdue } = useTodayGroups();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(frog.name);
-  const owned = CATALOG.filter((i) => frog.owned.includes(i.id));
+  usePatio(); // se vuelve a pintar cuando llegan los ganadores del patio
+  const owned = [...CATALOG, ...communityItems()].filter((i) => frog.owned.includes(i.id));
 
   return (
     <div>

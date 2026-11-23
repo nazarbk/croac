@@ -43,6 +43,11 @@ La lista de administradores solo se puede cambiar desde ahí: ni la app ni el na
 | `[` / `]` | Girar ∓1° (Mayús: 5°) |
 | Ctrl/Cmd + Z | Deshacer · Ctrl/Cmd + Mayús + Z: rehacer |
 
+### Ratón
+
+- **Arrastrar con imán**: al arrastrar, el centro del complemento (o su punto de apoyo) se pega a los ejes centrales de la caja (x 120, y 120) y a su posición original cuando pasa a menos de 7 px; se ve una línea rosa. Mantén **Alt** (o Ctrl/Cmd) para moverlo libre, o desmarca «Imán» en Guías.
+- **Rueda sobre un campo numérico**: con **Mayús** cambia de golpe (X/Y 1, escala 0,1, giro 5°, pivote 0,25, orden 10, separar lentes 2), aunque el campo no esté activo. Con el campo activo, la rueda sola cambia de paso normal y con Alt, fino. Las flechas dentro del campo hacen lo mismo.
+
 Las unidades son las de la caja de 240 × 240 de la rana, no píxeles: el ajuste se mantiene a cualquier tamaño.
 
 ## Dónde se guarda lo que haces

@@ -64,7 +64,7 @@ export default function WardrobePage() {
   const [withOthers, setWithOthers] = useState(false);
   const [others, setOthers] = useState<Partial<Record<AccSlot, string>>>({ hat: 'hat-cap', neck: 'neck-bowtie', eyes: 'eyes-round' });
   const [bg, setBg] = useState<'light' | 'dark' | 'checker'>('light');
-  const [guides, setGuides] = useState({ anchors: true, bounds: true, eyes: false, grid: false });
+  const [guides, setGuides] = useState({ anchors: true, bounds: true, eyes: false, grid: false, magnet: true });
   const [scopeMode, setScopeMode] = useState<'stage' | 'base'>('stage');
   const [local, setLocal] = useState<LocalItem | null>(null);
   const [localSlot, setLocalSlot] = useState<AccSlot>('hat');
@@ -373,6 +373,7 @@ export default function WardrobePage() {
               <Check label="Límites" value={guides.bounds} onChange={(v) => setGuides({ ...guides, bounds: v })} />
               <Check label="Ojos medidos" value={guides.eyes} onChange={(v) => setGuides({ ...guides, eyes: v })} />
               <Check label="Cuadrícula" value={guides.grid} onChange={(v) => setGuides({ ...guides, grid: v })} />
+              <Check label="Imán (Alt: sin imán)" value={guides.magnet} onChange={(v) => setGuides({ ...guides, magnet: v })} />
             </div>
           </Label>
 
@@ -418,7 +419,7 @@ export default function WardrobePage() {
             }}
           />
           <p className="text-[12px] text-muted mt-2 leading-relaxed">
-            Arrastra para mover · Flechas 0,5 (Mayús 2 · Alt 0,1) · <kbd>+</kbd>/<kbd>−</kbd> escala · <kbd>[</kbd>/<kbd>]</kbd> giro · Ctrl+Z deshacer.
+            Arrastra para mover (con imán a los ejes centrales y a su sitio original; Alt para moverlo libre) · Flechas 0,5 (Mayús 2 · Alt 0,1) · <kbd>+</kbd>/<kbd>−</kbd> escala · <kbd>[</kbd>/<kbd>]</kbd> giro · Ctrl+Z deshacer.
             Coordenadas en la caja de 240 × 240 de la rana: el resultado no depende del tamaño en pantalla.
           </p>
         </section>
@@ -430,14 +431,14 @@ export default function WardrobePage() {
             {scopeMode === 'stage' ? 'Lo de la etapa manda sobre la base, campo a campo.' : 'La base se aplica en todas las etapas salvo donde la etapa tenga su propio valor.'}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <Num label="X" value={scoped.x} fallback={eff.x ?? 0} step={0.1} onChange={(v) => setField({ x: v }, 'x')} />
-            <Num label="Y" value={scoped.y} fallback={eff.y ?? 0} step={0.1} onChange={(v) => setField({ y: v }, 'y')} />
-            <Num label="Escala" value={scoped.scale} fallback={eff.scale ?? 1} step={0.01} min={FIT_LIMITS.scale[0]} max={FIT_LIMITS.scale[1]} onChange={(v) => setField({ scale: v }, 'scale')} />
-            <Num label="Giro (°)" value={scoped.rotate} fallback={eff.rotate ?? 0} step={0.5} onChange={(v) => setField({ rotate: v }, 'rotate')} />
-            <Num label="Pivote X (0-1)" value={scoped.pivot?.[0]} fallback={eff.pivot?.[0] ?? art[itemId]?.ax ?? 0.5} step={0.05} onChange={(v) => setField({ pivot: v === undefined ? undefined : [v, scoped.pivot?.[1] ?? eff.pivot?.[1] ?? art[itemId]?.ay ?? 0.5] }, 'pivot')} />
-            <Num label="Pivote Y (0-1)" value={scoped.pivot?.[1]} fallback={eff.pivot?.[1] ?? art[itemId]?.ay ?? 0.5} step={0.05} onChange={(v) => setField({ pivot: v === undefined ? undefined : [scoped.pivot?.[0] ?? eff.pivot?.[0] ?? art[itemId]?.ax ?? 0.5, v] }, 'pivot')} />
+            <Num label="X" value={scoped.x} fallback={eff.x ?? 0} step={0.1} big={1} onChange={(v) => setField({ x: v }, 'x')} />
+            <Num label="Y" value={scoped.y} fallback={eff.y ?? 0} step={0.1} big={1} onChange={(v) => setField({ y: v }, 'y')} />
+            <Num label="Escala" value={scoped.scale} fallback={eff.scale ?? 1} step={0.01} big={0.1} min={FIT_LIMITS.scale[0]} max={FIT_LIMITS.scale[1]} onChange={(v) => setField({ scale: v }, 'scale')} />
+            <Num label="Giro (°)" value={scoped.rotate} fallback={eff.rotate ?? 0} step={0.5} big={5} onChange={(v) => setField({ rotate: v }, 'rotate')} />
+            <Num label="Pivote X (0-1)" value={scoped.pivot?.[0]} fallback={eff.pivot?.[0] ?? art[itemId]?.ax ?? 0.5} step={0.05} big={0.25} onChange={(v) => setField({ pivot: v === undefined ? undefined : [v, scoped.pivot?.[1] ?? eff.pivot?.[1] ?? art[itemId]?.ay ?? 0.5] }, 'pivot')} />
+            <Num label="Pivote Y (0-1)" value={scoped.pivot?.[1]} fallback={eff.pivot?.[1] ?? art[itemId]?.ay ?? 0.5} step={0.05} big={0.25} onChange={(v) => setField({ pivot: v === undefined ? undefined : [scoped.pivot?.[0] ?? eff.pivot?.[0] ?? art[itemId]?.ax ?? 0.5, v] }, 'pivot')} />
             {!isFace && <>
-            <Num label="Orden (z)" value={scoped.z} fallback={itemSel?.z ?? 0} step={1} onChange={(v) => setField({ z: v === undefined ? undefined : Math.round(v) }, 'z')} />
+            <Num label="Orden (z)" value={scoped.z} fallback={itemSel?.z ?? 0} step={1} big={10} onChange={(v) => setField({ z: v === undefined ? undefined : Math.round(v) }, 'z')} />
             <label className="text-[12px] font-medium text-muted">Capa
               <select className={cn(selectCls, 'mt-1')} value={scoped.layer ?? ''} onChange={(e) => setField({ layer: (e.target.value || undefined) as FitAdjust['layer'] }, 'layer')}>
                 <option value="">({eff.layer ?? 'front'})</option><option value="front">Delante</option><option value="back">Detrás de la rana</option>
@@ -459,7 +460,7 @@ export default function WardrobePage() {
               <div className="grid grid-cols-3 gap-2">
                 <Num label="Fin izq." value={split?.[0]} fallback={0.42} step={0.01} onChange={(v) => edit((c) => setSplit(c, itemId, v === undefined ? undefined : [v, Math.max(v, split?.[1] ?? 0.58)]), 'split')} />
                 <Num label="Inicio der." value={split?.[1]} fallback={0.58} step={0.01} onChange={(v) => edit((c) => setSplit(c, itemId, v === undefined ? undefined : [Math.min(v, split?.[0] ?? 0.42), v]), 'split')} />
-                <Num label="Separar" value={scoped.spread} fallback={eff.spread ?? 0} step={0.25} disabled={!split} onChange={(v) => setField({ spread: v }, 'spread')} />
+                <Num label="Separar" value={scoped.spread} fallback={eff.spread ?? 0} step={0.25} big={2} disabled={!split} onChange={(v) => setField({ spread: v }, 'spread')} />
               </div>
             </div>
           )}
@@ -572,7 +573,7 @@ function Canvas({ bg, stage, mood, guides, sel, layout, frog, onDrag, dragStart,
   bg: 'light' | 'dark' | 'checker';
   stage: StageId;
   mood: Mood;
-  guides: { anchors: boolean; bounds: boolean; eyes: boolean; grid: boolean };
+  guides: { anchors: boolean; bounds: boolean; eyes: boolean; grid: boolean; magnet: boolean };
   sel?: Sel;
   layout: ReturnType<typeof layoutFrog>;
   frog: ReactNode;
@@ -581,7 +582,9 @@ function Canvas({ bg, stage, mood, guides, sel, layout, frog, onDrag, dragStart,
   onKey: (e: ReactKeyboardEvent<HTMLDivElement>) => void;
 }) {
   const svg = useRef<SVGSVGElement | null>(null);
-  const drag = useRef<{ p0: DOMPoint; start: { x: number; y: number; t: number } } | null>(null);
+  const drag = useRef<{ p0: DOMPoint; start: { x: number; y: number; t: number }; c: [number, number]; s: [number, number] } | null>(null);
+  /** Guías del imán que se están usando (como las guías inteligentes de Illustrator). */
+  const [snap, setSnap] = useState<{ x?: number; y?: number }>({});
   const toBox = (e: { clientX: number; clientY: number }) => {
     const el = svg.current;
     const m = el?.getScreenCTM();
@@ -605,16 +608,38 @@ function Canvas({ bg, stage, mood, guides, sel, layout, frog, onDrag, dragStart,
           const p = toBox(e);
           if (!p || !sel) return;
           (e.currentTarget as SVGSVGElement).setPointerCapture(e.pointerId);
-          drag.current = { p0: p, start: dragStart() };
+          const v = sel.visible;
+          drag.current = { p0: p, start: dragStart(), c: [v.x + v.w / 2, v.y + v.h / 2], s: sel.support };
         }}
         onPointerMove={(e) => {
           const d = drag.current;
           const p = d && toBox(e);
           if (!d || !p) return;
-          onDrag(p.x - d.p0.x, p.y - d.p0.y, d.start);
+          let dx = p.x - d.p0.x;
+          let dy = p.y - d.p0.y;
+          const lines: { x?: number; y?: number } = {};
+          if (guides.magnet && !e.altKey && !e.ctrlKey && !e.metaKey) {
+            // Imán: el centro del complemento (o su punto de apoyo) se pega a los ejes centrales
+            // de la caja (x 120, y 120) y a su posición original, si está a menos de 7 px.
+            const px = svg.current?.getBoundingClientRect().width || 240;
+            const thr = (7 * 240) / px;
+            const pick = (cands: [number, number][]) => cands.reduce<[number, number] | null>((best, c) => (Math.abs(c[0]) <= thr && (!best || Math.abs(c[0]) < Math.abs(best[0])) ? c : best), null);
+            const sx = pick([
+              [120 - (d.c[0] + dx), 120], [120 - (d.s[0] + dx), 120],
+              [-(d.start.x + dx), d.s[0] - d.start.x],
+            ]);
+            const sy = pick([
+              [120 - (d.c[1] + dy), 120], [120 - (d.s[1] + dy), 120],
+              [-(d.start.y + dy), d.s[1] - d.start.y],
+            ]);
+            if (sx) { dx += sx[0]; lines.x = sx[1]; }
+            if (sy) { dy += sy[0]; lines.y = sy[1]; }
+          }
+          setSnap((o) => (o.x === lines.x && o.y === lines.y ? o : lines));
+          onDrag(dx, dy, d.start);
         }}
-        onPointerUp={() => { drag.current = null; }}
-        onPointerCancel={() => { drag.current = null; }}
+        onPointerUp={() => { drag.current = null; setSnap({}); }}
+        onPointerCancel={() => { drag.current = null; setSnap({}); }}
       >
         {guides.grid && Array.from({ length: 23 }, (_, i) => (i + 1) * 10).map((v) => (
           <g key={v} stroke={v === 120 ? '#ef4444' : '#94a3b8'} strokeOpacity={v === 120 ? 0.6 : 0.25} strokeWidth={1}>
@@ -650,6 +675,8 @@ function Canvas({ bg, stage, mood, guides, sel, layout, frog, onDrag, dragStart,
           <circle cx={sel.support[0]} cy={sel.support[1]} r={2.2} fill="#10b981" stroke="white" strokeWidth={0.8} />
           <circle cx={sel.pivot[0]} cy={sel.pivot[1]} r={4} stroke="#f43f5e" strokeWidth={1.2} {...line} />
         </>}
+        {snap.x !== undefined && <line x1={snap.x} y1={0} x2={snap.x} y2={240} stroke="#ec4899" strokeWidth={1.5} {...line} />}
+        {snap.y !== undefined && <line x1={0} y1={snap.y} x2={240} y2={snap.y} stroke="#ec4899" strokeWidth={1.5} {...line} />}
       </svg>
       <div className="absolute left-2 bottom-2 text-[11px] px-2 py-1 rounded-md bg-black/55 text-white pointer-events-none">
         {STAGES.find((s) => s.id === stage)!.name} · {mood}
@@ -721,26 +748,72 @@ function Status({ tone, title, text }: { tone: 'ok' | 'warn' | 'info' | 'idle'; 
   );
 }
 
-/** Campo numérico: vacío = sin valor propio (usa el heredado, que se ve en gris). */
-function Num({ label, value, fallback, step, min, max, disabled, onChange }: {
-  label: string; value: number | undefined; fallback: number; step: number; min?: number; max?: number; disabled?: boolean;
+/**
+ * Campo numérico: vacío = sin valor propio (usa el heredado, que se ve en gris).
+ * Como en Photoshop o Illustrator: con el ratón encima, Mayús + rueda cambia el valor de
+ * golpe (`big`, por defecto 10 pasos); con el campo activo, la rueda sola va de paso en
+ * paso y Alt + rueda, fino. Las flechas del teclado hacen lo mismo (Mayús = grande).
+ */
+function Num({ label, value, fallback, step, big, min, max, disabled, onChange }: {
+  label: string; value: number | undefined; fallback: number; step: number; big?: number; min?: number; max?: number; disabled?: boolean;
   onChange: (v: number | undefined) => void;
 }) {
   const [text, setText] = useState(value === undefined ? '' : String(value));
   const [focus, setFocus] = useState(false);
+  const ref = useRef<HTMLInputElement | null>(null);
+  // La rueda necesita un oyente no pasivo (para que no se mueva la página): lee lo último por ref.
+  const latest = useRef({ value, fallback, step, big, min, max, disabled, onChange });
+  latest.current = { value, fallback, step, big, min, max, disabled, onChange };
   useEffect(() => { if (!focus) setText(value === undefined ? '' : String(value)); }, [value, focus]);
+
+  const clamp = (v: number, lo?: number, hi?: number) => Math.min(hi ?? v, Math.max(lo ?? v, v));
+  const bump = (dir: 1 | -1, mode: 'big' | 'step' | 'fine') => {
+    const l = latest.current;
+    if (l.disabled) return;
+    const inc = mode === 'big' ? l.big ?? l.step * 10 : mode === 'fine' ? l.step / 10 : l.step;
+    // Redondeo al múltiplo del paso para que no queden decimales raros (0.30000000004).
+    const decimals = Math.max(0, -Math.floor(Math.log10(inc)) + 1);
+    const next = clamp(Number(((l.value ?? l.fallback) + dir * inc).toFixed(decimals)), l.min, l.max);
+    setText(String(next));
+    l.onChange(next);
+  };
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      const active = document.activeElement === el;
+      if (!e.shiftKey && !active) return; // sin Mayús ni foco: la página se desplaza como siempre
+      // Con Mayús, Windows convierte la rueda en desplazamiento horizontal (deltaX).
+      const d = e.deltaY || e.deltaX;
+      if (!d) return;
+      e.preventDefault();
+      bump(d < 0 ? 1 : -1, e.shiftKey ? 'big' : e.altKey ? 'fine' : 'step');
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <label className="text-[12px] font-medium text-muted">
       {label}
       <input
+        ref={ref}
         type="number" inputMode="decimal" step={step} min={min} max={max} disabled={disabled}
         value={text} placeholder={String(r2(fallback))}
+        title={`Mayús + rueda: de ${big ?? step * 10} en ${big ?? step * 10} · Rueda con el campo activo: de ${step} en ${step} · Flechas igual (Alt: fino)`}
         onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
+        onKeyDown={(e) => {
+          if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+          e.preventDefault();
+          bump(e.key === 'ArrowUp' ? 1 : -1, e.shiftKey ? 'big' : e.altKey ? 'fine' : 'step');
+        }}
         onChange={(e) => {
           setText(e.target.value);
           if (e.target.value.trim() === '') return onChange(undefined);
           const v = Number(e.target.value.replace(',', '.'));
-          if (Number.isFinite(v)) onChange(min !== undefined || max !== undefined ? Math.min(max ?? v, Math.max(min ?? v, v)) : v);
+          if (Number.isFinite(v)) onChange(min !== undefined || max !== undefined ? clamp(v, min, max) : v);
         }}
         className={cn(selectCls, 'mt-1 tabular-nums', value === undefined && 'text-muted')}
       />

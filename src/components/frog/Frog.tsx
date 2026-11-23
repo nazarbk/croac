@@ -5,6 +5,7 @@ import type { Slot } from '../../domain/types';
 import { cn } from '../../lib/cn';
 import { art, ITEM_ART, STAGE_ART, type ItemArt } from './art';
 import type { FitConfig } from './fit-schema';
+import { useCommunityArt, type CommunityArt } from './community';
 import { useActiveFit } from './fitStore';
 import { layoutFrog, type ItemLayout } from './layout';
 import { bodyUrl, faceUrl } from './skins';
@@ -13,6 +14,15 @@ const BACKGROUNDS = ['bg-pond', 'bg-sunset', 'bg-night', 'bg-rain', 'bg-space', 
 
 export const backgroundUrl = (id?: string) => art(`bg/${id && BACKGROUNDS.includes(id) ? id : 'bg-pond'}.webp`);
 export const itemUrl = (id: string) => art(`acc/${id}.webp`);
+
+/** Dibujos del catálogo + ganadores del patio + los del probador. */
+function artFor(community: Record<string, CommunityArt>, extra?: Record<string, ItemArt>): Record<string, ItemArt> {
+  const ids = Object.keys(community);
+  if (!ids.length && !extra) return ITEM_ART;
+  const out: Record<string, ItemArt> = { ...ITEM_ART };
+  for (const id of ids) out[id] = community[id].art;
+  return extra ? Object.assign(out, extra) : out;
+}
 
 /** La rana encima del nenúfar del fondo: los fondos tienen el nenúfar a ~84 % de alto. */
 const ON_PAD = 'translate(120 202) scale(.86) translate(-120 -228)';
@@ -52,13 +62,14 @@ export function Frog({
 }: FrogProps) {
   const uid = useId().replace(/:/g, '');
   const active = useActiveFit();
+  const community = useCommunityArt();
   const stage = stageOverride ?? stageForLevel(level).id;
   const body = STAGE_ART[stage].rect;
   // Aritmética sobre datos ya medidos: nada de analizar imágenes al renderizar.
   const layout = layoutFrog(
     stage,
     [equipped.neck, equipped.hat, mood === 'sleeping' ? undefined : equipped.eyes],
-    fit ?? active, itemArt ? { ...ITEM_ART, ...itemArt } : ITEM_ART,
+    fit ?? active, artFor(community, itemArt),
   );
   const { face } = layout;
   const all = [...layout.back, ...layout.front];
@@ -71,7 +82,7 @@ export function Frog({
     </g>
   );
   const draw = (l: ItemLayout) => (
-    <ItemImage key={l.id} l={l} href={itemHref?.[l.id] ?? itemUrl(l.id)} uid={uid} />
+    <ItemImage key={l.id} l={l} href={itemHref?.[l.id] ?? community[l.id]?.href ?? itemUrl(l.id)} uid={uid} />
   );
 
   return (

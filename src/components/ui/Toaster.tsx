@@ -18,7 +18,7 @@ function ToastView({ t }: { t: Toast }) {
       {(t.xp !== undefined || t.coins !== undefined) && (
         <span className="flex items-center gap-2 text-sm font-bold tabular-nums">
           {t.xp !== undefined && t.xp !== 0 && <span className={t.xp > 0 ? 'text-lily-soft dark:text-lily' : 'text-danger-soft dark:text-danger'}>{t.xp > 0 ? '+' : ''}{t.xp} XP</span>}
-          {!!t.coins && <span className="flex items-center gap-1">+{t.coins}<Coin size={14} /></span>}
+          {!!t.coins && <span className="flex items-center gap-1">{t.coins > 0 ? '+' : '−'}{Math.abs(t.coins)}<Coin size={14} /></span>}
         </span>
       )}
       {t.action ? (
