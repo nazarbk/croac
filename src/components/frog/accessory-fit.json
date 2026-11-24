@@ -79,6 +79,16 @@
           "scale": 1.08
         }
       }
+    },
+    "neck-s2-bird": {
+      "base": {
+        "overlay": "head"
+      }
+    },
+    "neck-s2-lantern": {
+      "base": {
+        "overlay": "head"
+      }
     }
   }
 }

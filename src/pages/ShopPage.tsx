@@ -7,8 +7,9 @@ import { Button } from '../components/ui/Button';
 import { Segmented } from '../components/ui/controls';
 import { Coin, Icon } from '../components/ui/Icon';
 import { can } from '../domain/plans';
-import { formatLong } from '../domain/dates';
-import { currentSeason, daysLeft, seasonById, visibleItems, type Season } from '../domain/seasons';
+import { formatLong, formatShort } from '../domain/dates';
+import { currentSeason, daysLeft, seasonById, seasonNotStarted, upcomingSeason, visibleItems, type Season } from '../domain/seasons';
+import { useIsAdmin } from '../services/admin';
 import { canBuy, CATALOG, SLOTS, type ShopItem } from '../domain/shop';
 import type { Slot } from '../domain/types';
 import { cn } from '../lib/cn';
@@ -50,6 +51,8 @@ function ItemCard({ item }: { item: ShopItem }) {
     );
   } else if (!check.ok && check.reason === 'premium') {
     action = <a href={href('ajustes')} className="h-8 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 bg-pro-soft text-pro"><Icon name="sparkles" size={14} />Solo Pro</a>;
+  } else if (!check.ok && check.reason === 'season' && seasonNotStarted(item, today)) {
+    action = <div className="h-8 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 bg-surface-2 text-muted"><Icon name="clock" size={14} />Desde el {formatShort(seasonById(item.season)!.start)}</div>;
   } else if (!check.ok && check.reason === 'season') {
     action = <div className="h-8 rounded-lg text-sm font-semibold flex items-center justify-center bg-surface-2 text-muted">Ya no disponible</div>;
   } else if (!check.ok && check.reason === 'level') {
@@ -112,28 +115,43 @@ function PatioShelf() {
   );
 }
 
-function SeasonBanner({ season }: { season: Season }) {
+/** Solo administradores: ver la próxima temporada antes de su estreno (nadie más la ve). */
+function SeasonPreviewBar({ season, on, onToggle }: { season: Season; on: boolean; onToggle: () => void }) {
+  return (
+    <div className="mt-5 rounded-2xl border border-dashed border-pro bg-pro-soft/60 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-2.5">
+      <div className="min-w-0 sm:flex-1 text-[14px] leading-snug">
+        <span className="font-bold text-pro">Solo administradores · </span>
+        Temporada {season.number}, «{season.name}», sale sola el {formatLong(season.start)}. Hasta entonces nadie más la ve.
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <a href="#/admin/probador" className="h-9 px-3 rounded-xl text-sm font-semibold flex items-center border border-line bg-surface hover:bg-surface-2">Ajustar en el probador</a>
+        <Button size="sm" variant={on ? 'secondary' : 'primary'} onClick={onToggle} aria-pressed={on}>{on ? 'Volver a hoy' : 'Vista previa'}</Button>
+      </div>
+    </div>
+  );
+}
+
+function SeasonBanner({ season, preview }: { season: Season; preview?: boolean }) {
   const today = useToday();
   const left = daysLeft(season, today);
+  const badge = preview ? `Empieza el ${formatShort(season.start)}` : left <= 1 ? '¡Último día!' : `Quedan ${left} días`;
   const owned = useApp((s) => s.frog.owned);
   const items = visibleItems(season);
   const got = items.filter((i) => owned.includes(i.id)).length;
   return (
-    <section className="mt-5 rounded-[1.75rem] border border-line bg-surface shadow-card overflow-hidden">
+    <section className={cn('mt-5 rounded-[1.75rem] border bg-surface shadow-card overflow-hidden', preview ? 'border-2 border-dashed border-pro' : 'border-line')}>
       {season.banner ? (
         <div className="relative text-white bg-[#1c2b3f] sm:min-h-[13rem] sm:flex sm:flex-col sm:justify-end">
           {/* Móvil: la ilustración arriba y el texto debajo. Desde sm: el texto encima, a la izquierda. */}
           <div className="relative h-36 sm:absolute sm:inset-0 sm:h-auto overflow-hidden">
-            <img src={art(season.banner)} alt="" className="absolute inset-0 w-full h-full object-cover object-[62%_center]" />
+            <img src={art(season.banner)} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: season.bannerPosition ?? 'center' }} />
             <div className="hidden sm:block absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" aria-hidden />
             <div className="sm:hidden absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#1c2b3f] to-transparent" aria-hidden />
           </div>
           <div className="relative px-5 pb-4 pt-1 sm:pt-14 sm:max-w-[55%]">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="inline-block text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/20 backdrop-blur-sm">Temporada {season.number}</span>
-              <span className="inline-block text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-coin text-ink">
-                {left <= 1 ? '¡Último día!' : `Quedan ${left} días`}
-              </span>
+              <span className="inline-block text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-coin text-ink">{badge}</span>
             </div>
             <h2 className="font-display text-2xl sm:text-[1.75rem] font-extrabold leading-tight mt-1.5 [text-shadow:0_2px_8px_rgb(0_0_0/.5)]">{season.name}</h2>
             <p className="text-white/90 text-[15px] mt-1 leading-snug [text-shadow:0_1px_4px_rgb(0_0_0/.6)]">{season.tagline}</p>
@@ -148,12 +166,12 @@ function SeasonBanner({ season }: { season: Season }) {
               <h2 className="font-display text-2xl sm:text-[1.75rem] font-extrabold leading-tight mt-1.5 drop-shadow-sm">{season.name}</h2>
               <p className="text-white/90 text-[15px] mt-1 leading-snug max-w-md">{season.tagline}</p>
             </div>
-            <SeasonCountdown left={left} />
+            {preview ? <span className="shrink-0 text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-coin text-ink">{badge}</span> : <SeasonCountdown left={left} />}
           </div>
         </div>
       )}
       <p className="px-5 pt-3 text-[13px] text-muted">
-        Hasta el {formatLong(season.end)} · {got}/{items.length} conseguidos · lo que compres es tuyo para siempre
+        {preview ? `Del ${formatLong(season.start)} al ${formatLong(season.end)}` : `Hasta el ${formatLong(season.end)}`} · {got}/{items.length} conseguidos · lo que compres es tuyo para siempre
       </p>
       <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
         {items.map((i) => <ItemCard key={i.id} item={i} />)}
@@ -167,7 +185,12 @@ export function ShopPage() {
   const coins = useApp((s) => s.frog.coins);
   const owned = useApp((s) => s.frog.owned);
   const today = useToday();
-  const season = currentSeason(today);
+  const isAdmin = useIsAdmin();
+  const upcoming = isAdmin || import.meta.env.DEV ? upcomingSeason(today) : undefined;
+  const [previewOn, setPreviewOn] = useState(false);
+  const preview = previewOn && !!upcoming;
+  // Con la vista previa, la tienda se ve tal y como quedará el día del estreno.
+  const season = preview ? upcoming : currentSeason(today);
   // Los de la temporada actual van en su cartel; los de temporadas pasadas, solo si ya son tuyos.
   const regular = CATALOG.filter((i) => i.price > 0 && !i.hidden && (!i.season || (owned.includes(i.id) && i.season !== season?.id)));
   // Solo las pestañas con algo que enseñar (p. ej. no hay pieles a la venta ahora mismo).
@@ -183,7 +206,8 @@ export function ShopPage() {
         </div>
         <div className="flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-coin-soft font-bold text-lg tabular-nums shrink-0"><Coin size={20} />{coins}</div>
       </header>
-      {season && <SeasonBanner season={season} />}
+      {upcoming && <SeasonPreviewBar season={upcoming} on={preview} onToggle={() => setPreviewOn((v) => !v)} />}
+      {season && <SeasonBanner season={season} preview={preview} />}
       <PatioShelf />
       {season && <h2 className="font-display text-lg font-bold px-1 mt-8">Siempre disponible</h2>}
       <div className={cn('-mx-4 px-4 overflow-x-auto scrollbar-none', season ? 'mt-3' : 'mt-5')}>

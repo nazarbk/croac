@@ -77,6 +77,12 @@ export const ITEM_ART: Record<string, ItemArt> = {
   'hat-s1-bear': { ratio: 0.7789, w: 1.1, ax: 0.5, ay: 0.5, center: -0.06, noEyes: true },
   'eyes-s1-cloud': { ratio: 0.4689, w: 2.06, ax: 0.5, ay: 0.6 },
   'hat-s1-icecrown': { ratio: 0.8589, w: 0.6, ax: 0.5, ay: 0.95 },
+  'neck-s2-bird': { ratio: 0.8938, w: 0.86, ax: 0.5, ay: 0.02 },
+  'hat-s2-pointy': { ratio: 1.3408, w: 0.56, ax: 0.46, ay: 0.96 },
+  'eyes-s2-pumpkin': { ratio: 0.5208, w: 2.0, ax: 0.5, ay: 0.58 },
+  'eyes-s2-branch': { ratio: 0.4292, w: 2.0, ax: 0.5, ay: 0.58 },
+  'neck-s2-lantern': { ratio: 1.28, w: 0.7, ax: 0.5, ay: 0.02 },
+  'hat-s2-teapot': { ratio: 0.4958, w: 0.95, ax: 0.5, ay: 0.9 },
 };
 
 /**

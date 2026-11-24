@@ -8,8 +8,8 @@ Desde la v1.0 la app usa ilustraciones en lugar de los dibujos SVG hechos en có
 |---|---|---|
 | `public/art/frog/body/<etapa>.webp` | Cuerpo de la rana sin cara, uno por etapa (5) | 720 px de alto |
 | `public/art/frog/face/<ánimo>.webp` | Expresiones, una por ánimo (5), comunes a las cinco etapas. Lienzo 940 × 540 con la nariz en el centro | 564 × 324 px |
-| `public/art/acc/<id>.webp` | 25 complementos (11 de cabeza, 8 de cuello, 6 gafas), recortados a su parte visible | 480 px |
-| `public/art/bg/<id>.webp` | 7 fondos de la escena de la rana (2 de la Temporada 1) | 1254 px |
+| `public/art/acc/<id>.webp` | 31 complementos (13 de cabeza, 10 de cuello, 8 gafas), recortados a su parte visible | 480 px |
+| `public/art/bg/<id>.webp` | 9 fondos de la escena de la rana (2 por temporada) | 1254 px |
 | `public/art/season/<id>-banner.webp` | Cartel de cada temporada en la tienda (~4:1) | 1024 px |
 | `public/art/pond/{day,night}-{square,wide}.webp` | La charca de amigos: de día / de noche, para móvil / escritorio | 1600 px |
 | `public/art/ui/*.webp` | Moneda, gota de XP, trofeo e ilustraciones de estados vacíos | 128–480 px |
@@ -38,6 +38,10 @@ Las gafas se ocultan cuando la rana duerme.
 ## Temporadas
 
 Los complementos de temporada siguen el mismo sistema: imagen en `public/art/acc/<id>.webp` (ids con el número de temporada, p. ej. `hat-s1-bear`) y su encaje en `ITEM_ART`. Las pieles de temporada se generan recoloreando la rana verde a partir de una sola ilustración de la rana adulta neutral (`public/art/frog/skin-s1-*`).
+
+Cómo preparar y programar una temporada nueva: `docs/TEMPORADAS.md` (script `scripts/art/season_art.py`).
+
+Temporada 2 «Más allá del jardín»: gorro de poeta, tetera por sombrero, gafas de calabaza y de rama, colgante de pajarito, farol del bosque y dos fondos (atardecer de calabazas y charca del bosque oscuro).
 
 Temporada 1 «Hora de aventuras» (originales en `design/originales/temporada-1/`): gorro de oso, bufanda perruna, gafas de caramelo, gafas de nube, colgante bajo-hacha, corona helada, piel perruna y piel consola (a la rana adulta se le añaden los botones de la barriga).
 

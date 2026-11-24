@@ -1,6 +1,7 @@
 import { Fragment, useId } from 'react';
 import type { Mood } from '../../domain/engine';
 import { stageForLevel, type StageId } from '../../domain/progression';
+import { CATALOG } from '../../domain/shop';
 import type { Slot } from '../../domain/types';
 import { cn } from '../../lib/cn';
 import { art, ITEM_ART, STAGE_ART, type ItemArt } from './art';
@@ -10,9 +11,10 @@ import { useActiveFit } from './fitStore';
 import { layoutFrog, type ItemLayout } from './layout';
 import { bodyUrl, faceUrl } from './skins';
 
-const BACKGROUNDS = ['bg-pond', 'bg-sunset', 'bg-night', 'bg-rain', 'bg-space', 'bg-s1-candy', 'bg-s1-treehouse'];
+/** Los fondos del catálogo (incluidos los de cada temporada): su imagen es public/art/bg/<id>.webp. */
+const BACKGROUNDS = new Set(['bg-pond', ...CATALOG.filter((i) => i.slot === 'background').map((i) => i.id)]);
 
-export const backgroundUrl = (id?: string) => art(`bg/${id && BACKGROUNDS.includes(id) ? id : 'bg-pond'}.webp`);
+export const backgroundUrl = (id?: string) => art(`bg/${id && BACKGROUNDS.has(id) ? id : 'bg-pond'}.webp`);
 export const itemUrl = (id: string) => art(`acc/${id}.webp`);
 
 /** Dibujos del catálogo + ganadores del patio + los del probador. */

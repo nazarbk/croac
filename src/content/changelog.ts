@@ -2,6 +2,7 @@
  * Tablón de novedades. La primera entrada es la más reciente.
  * Al publicar una versión: sube "version" en package.json y añade aquí su entrada
  * con la MISMA versión. Quien abra la app verá la ventana de novedades una vez.
+ * Una entrada con fecha futura (p. ej. el estreno de una temporada) no se enseña hasta ese día.
  */
 export type ChangeKind = 'nuevo' | 'mejora' | 'arreglo';
 
@@ -15,6 +16,17 @@ export interface Release {
 }
 
 export const CHANGELOG: Release[] = [
+  {
+    version: '1.4.0',
+    date: '2026-11-26',
+    title: 'Temporada 2: Más allá del jardín',
+    art: 'ui/celebrate.webp',
+    changes: [
+      { kind: 'nuevo', text: 'Temporada 2, «Más allá del jardín», hasta el miércoles 2 de diciembre: gorro de poeta, tetera por sombrero, gafas de calabaza y de rama, colgante de pajarito y farol del bosque.' },
+      { kind: 'nuevo', text: 'Dos fondos otoñales: el atardecer de calabazas y la charca del bosque oscuro.' },
+      { kind: 'mejora', text: 'Lo que compraste en la Temporada 1 sigue siendo tuyo y lo encuentras en la tienda y en el armario.' },
+    ],
+  },
   {
     version: '1.3.0',
     date: '2026-11-23',
@@ -90,6 +102,12 @@ export const CHANGELOG: Release[] = [
 ];
 
 export const LATEST = CHANGELOG[0];
+
+/** Las entradas ya publicadas a fecha de hoy (las de fecha futura esperan a su día). */
+export const releasedChangelog = (today: string) => CHANGELOG.filter((r) => r.date <= today);
+
+/** La versión más reciente ya publicada hoy. */
+export const latestReleased = (today: string) => releasedChangelog(today)[0] ?? CHANGELOG[CHANGELOG.length - 1];
 
 /** Compara "1.2.0" con "1.10.0" correctamente. */
 export function isNewer(a: string, b: string): boolean {

@@ -7,6 +7,9 @@ const season: Season = {
   id: 'test', number: 9, name: 'Prueba', tagline: '', start: '2026-11-19', end: '2026-11-25', colors: ['#000', '#fff'], items: [],
 };
 
+// Sin @types/node en el proyecto: se carga en ejecución (los tests corren en Node).
+const nodeFs = () => import(/* @vite-ignore */ 'node:fs' as string) as Promise<{ existsSync(path: string): boolean }>;
+
 describe('temporadas', () => {
   it('los artículos normales siempre están disponibles', () => {
     expect(inSeason({}, '2030-01-01')).toBe(true);
@@ -45,6 +48,19 @@ describe('catálogo', () => {
     for (const i of CATALOG) {
       if (i.slot === 'hat' || i.slot === 'neck' || i.slot === 'eyes') expect(ITEM_ART[i.id] ? i.id : `falta ${i.id}`).toBe(i.id);
     }
+  });
+
+  it('cada artículo del catálogo tiene su imagen en public/art', async () => {
+    const { existsSync } = await nodeFs();
+    const { CATALOG } = await import('../shop');
+    const missing = CATALOG.filter((i) => i.slot !== 'skin' && !existsSync(`public/art/${i.slot === 'background' ? 'bg' : 'acc'}/${i.id}.webp`)).map((i) => i.id);
+    expect(missing).toEqual([]);
+  });
+
+  it('las temporadas con banner tienen su imagen', async () => {
+    const { existsSync } = await nodeFs();
+    const { SEASONS } = await import('../seasons');
+    expect(SEASONS.filter((s) => s.banner && !existsSync(`public/art/${s.banner}`)).map((s) => s.id)).toEqual([]);
   });
 
   it('una semana de tareas da para los 3 artículos más baratos de cada temporada', async () => {

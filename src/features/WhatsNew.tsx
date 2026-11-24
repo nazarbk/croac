@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { art } from '../components/frog/art';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { CHANGELOG, isNewer, LATEST, type ChangeKind, type Release } from '../content/changelog';
+import { isNewer, latestReleased, releasedChangelog, type ChangeKind, type Release } from '../content/changelog';
 import { needsRollover } from '../domain/engine';
 import { formatLong } from '../domain/dates';
 import { cn } from '../lib/cn';
 import { navigate } from '../lib/router';
-import { appStore, useApp, useToday } from '../store/appStore';
+import { appStore, clockStore, useApp, useToday } from '../store/appStore';
 import { createStore, useStore } from '../store/createStore';
 
 const SEEN_KEY = 'croac:seen-version';
@@ -22,11 +22,14 @@ function writeSeen(v: string) {
 const seenStore = createStore<{ seen: string | null }>({ seen: readSeen() });
 export const useHasNews = () => {
   const seen = useStore(seenStore, (s) => s.seen);
-  return !seen || isNewer(LATEST.version, seen);
+  const today = useToday();
+  return !seen || isNewer(latestReleased(today).version, seen);
 };
+/** Marca como vista la última versión publicada HOY (las de fecha futura saldrán en su día). */
 export function markNewsSeen() {
-  writeSeen(LATEST.version);
-  seenStore.set({ seen: LATEST.version });
+  const v = latestReleased(clockStore.get().today).version;
+  writeSeen(v);
+  seenStore.set({ seen: v });
 }
 
 const KIND: Record<ChangeKind, { label: string; className: string }> = {
@@ -77,12 +80,12 @@ export function WhatsNew() {
       }
     }
     if (!onboarded || reviewPending) return;
-    const pending = CHANGELOG.filter((r) => !seen || isNewer(r.version, seen)).slice(0, 2);
+    const pending = releasedChangelog(today).filter((r) => !seen || isNewer(r.version, seen)).slice(0, 2);
     if (pending.length) {
       setReleases(pending);
       setOpen(true);
     }
-  }, [onboarded, reviewPending]);
+  }, [onboarded, reviewPending, today]);
 
   const close = () => {
     markNewsSeen();
