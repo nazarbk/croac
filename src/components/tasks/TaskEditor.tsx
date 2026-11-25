@@ -8,7 +8,7 @@ import type { Difficulty, Priority, Subtask, TaskStatus } from '../../domain/typ
 import { cn } from '../../lib/cn';
 import { actions } from '../../store/actions';
 import { appStore, useApp, useToday } from '../../store/appStore';
-import { seasonBoost } from '../../domain/seasons';
+import { boostLabel, seasonBoost } from '../../domain/seasons';
 import { ui, useUi } from '../../store/uiStore';
 import { deleteWithUndo } from '../../features/feedback';
 import { Button, IconButton } from '../ui/Button';
@@ -228,7 +228,7 @@ export function TaskEditor() {
           </div>
         </Field>
 
-        <Field label="Dificultad" hint={`Recompensa: +${reward.xp} XP y +${reward.coins} monedas${streak > 1 ? ` (incluye bonus por racha de ${streak})` : ''}${boost ? ` Hoy, último día de temporada: XP ×${boost.xp}.` : ''}`}>
+        <Field label="Dificultad" hint={`Recompensa: +${reward.xp} XP y +${reward.coins} monedas${streak > 1 ? ` (incluye bonus por racha de ${streak})` : ''}${boost ? ` Hoy, último día de temporada: ${boostLabel(boost)}.` : ''}`}>
           <Segmented<Difficulty>
             full
             value={draft.difficulty}

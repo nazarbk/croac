@@ -39,12 +39,12 @@ describe('niveles', () => {
 });
 
 describe('completar tareas', () => {
-  it('el último día de temporada la experiencia vale el doble (y se deshace bien)', () => {
+  it('el último día de temporada la experiencia y las monedas valen el doble (y se deshace bien)', () => {
     const last = '2026-11-25'; // último día de la Temporada 1
     const s = withTasks([{ title: 'Correr', date: last, difficulty: 'medium' }, { title: 'Leer', date: last, difficulty: 'medium' }], last);
     const a = completeTask(s, s.tasks[0].id, ctx(last));
     expect(a.state.frog.xp).toBe(40);
-    expect(a.state.frog.coins).toBe(20 + 6); // las monedas no se multiplican
+    expect(a.state.frog.coins).toBe(20 + 12); // monedas también ×2
     const ev = a.events.find((e) => e.type === 'reward');
     expect(ev?.type === 'reward' && [ev.xp, ev.boost]).toEqual([40, 2]);
     const b = completeTask(a.state, a.state.tasks[1].id, ctx(last));
@@ -52,6 +52,7 @@ describe('completar tareas', () => {
     const entry = b.state.history.find((h) => h.type === 'complete' && h.title === 'Leer')!;
     const undone = undoCompletion(b.state, entry.id, ctx(last));
     expect(undone.state.frog.xp).toBe(40);
+    expect(undone.state.frog.coins).toBe(20 + 12);
   });
 
   it('el día anterior al último no hay multiplicador', () => {

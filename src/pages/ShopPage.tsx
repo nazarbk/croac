@@ -8,7 +8,7 @@ import { Segmented } from '../components/ui/controls';
 import { Coin, Icon } from '../components/ui/Icon';
 import { can } from '../domain/plans';
 import { formatLong, formatShort } from '../domain/dates';
-import { currentSeason, daysLeft, LAST_DAY_BOOST, seasonById, seasonNotStarted, upcomingSeason, visibleItems, type Season } from '../domain/seasons';
+import { boostLabel, currentSeason, daysLeft, LAST_DAY_BOOST, seasonById, seasonNotStarted, upcomingSeason, visibleItems, type Season } from '../domain/seasons';
 import { useIsAdmin } from '../services/admin';
 import { canBuy, CATALOG, SLOTS, type ShopItem } from '../domain/shop';
 import type { Slot } from '../domain/types';
@@ -134,7 +134,7 @@ function SeasonPreviewBar({ season, on, onToggle }: { season: Season; on: boolea
 function SeasonBanner({ season, preview }: { season: Season; preview?: boolean }) {
   const today = useToday();
   const left = daysLeft(season, today);
-  const badge = preview ? `Empieza el ${formatShort(season.start)}` : left <= 1 ? `¡Último día! · XP ×${LAST_DAY_BOOST.xp}` : `Quedan ${left} días`;
+  const badge = preview ? `Empieza el ${formatShort(season.start)}` : left <= 1 ? `¡Último día! · ${LAST_DAY_BOOST.xp > 1 && LAST_DAY_BOOST.coins > 1 ? `${boostLabel()} XP y monedas` : boostLabel()}` : `Quedan ${left} días`;
   const owned = useApp((s) => s.frog.owned);
   const items = visibleItems(season);
   const got = items.filter((i) => owned.includes(i.id)).length;

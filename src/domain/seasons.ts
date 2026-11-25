@@ -116,10 +116,14 @@ export function inSeason(item: Pick<ShopItem, 'season'>, today: DateStr): boolea
 
 /** Días que quedan incluyendo hoy (1 = último día). */
 /**
- * Último día de temporada: lo que se gana ese día se multiplica para dar un último empujón
- * antes de que cierre la tienda. Para dar también monedas dobles basta con `coins: 2`.
+ * Último día de temporada: lo que se gana ese día se multiplica (experiencia y monedas) para
+ * dar un último empujón y que dé tiempo a comprar lo de la temporada antes de que se cierre.
  */
-export const LAST_DAY_BOOST = { xp: 2, coins: 1 } as const;
+export const LAST_DAY_BOOST = { xp: 2, coins: 2 } as const;
+
+/** Texto corto del multiplicador: «×2» si es igual para todo, «XP ×2» si solo es experiencia… */
+export const boostLabel = (b: { xp: number; coins: number } = LAST_DAY_BOOST) =>
+  b.xp === b.coins ? `×${b.xp}` : [b.xp > 1 && `XP ×${b.xp}`, b.coins > 1 && `monedas ×${b.coins}`].filter(Boolean).join(' · ');
 
 /** El multiplicador de hoy, o null si no hay (solo el último día de una temporada en curso). */
 export function seasonBoost(today: DateStr): { season: Season; xp: number; coins: number } | null {

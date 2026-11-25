@@ -1,3 +1,4 @@
+import { boostLabel } from '../domain/seasons';
 import { useEffect } from 'react';
 import { Frog } from '../components/frog/Frog';
 import { Button } from '../components/ui/Button';
@@ -23,7 +24,7 @@ export function useGameFeedback() {
               ui.hop();
               play(sounds.complete);
               ui.toast({
-                message: (e.streak > 1 ? `¡Racha de ${e.streak}!` : 'Completada') + (e.boost ? ` · ¡XP ×${e.boost}!` : ''),
+                message: (e.streak > 1 ? `¡Racha de ${e.streak}!` : 'Completada') + (e.boost ? ` · ¡${boostLabel()}!` : ''),
                 tone: 'reward',
                 xp: e.xp,
                 coins: e.coins,
@@ -31,7 +32,7 @@ export function useGameFeedback() {
               });
               break;
             case 'perfectDay':
-              ui.toast({ message: e.boost ? `¡Día perfecto! · XP ×${e.boost}` : '¡Día perfecto!', tone: 'reward', xp: e.xp, coins: e.coins, duration: 4500 });
+              ui.toast({ message: e.boost ? `¡Día perfecto! · ${boostLabel()}` : '¡Día perfecto!', tone: 'reward', xp: e.xp, coins: e.coins, duration: 4500 });
               break;
             case 'levelUp':
               play(sounds.levelUp);

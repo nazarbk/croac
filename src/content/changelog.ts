@@ -29,12 +29,12 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
-    version: '1.3.1',
+    version: '1.3.2',
     date: '2026-11-25',
-    title: 'Último día: doble de experiencia',
+    title: 'Último día: doble de experiencia y de monedas',
     art: 'ui/celebrate.webp',
     changes: [
-      { kind: 'nuevo', text: 'El último día de cada temporada, cada tarea (y el día perfecto) da el doble de experiencia. ¡Aprovecha para terminar la colección!' },
+      { kind: 'nuevo', text: 'El último día de cada temporada, cada tarea (y el día perfecto) da el doble de experiencia y el doble de monedas. ¡Aprovecha para terminar la colección antes de que cierre!' },
     ],
   },
   {

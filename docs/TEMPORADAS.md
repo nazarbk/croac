@@ -3,7 +3,7 @@
 Cada temporada es una colección de complementos y fondos que solo se puede comprar durante sus fechas (lo comprado es para siempre). Se definen en `src/domain/seasons.ts`.
 
 - **Duración**: dos semanas, de jueves a miércoles (la Temporada 1 duró una).
-- **Último día**: cada tarea y el día perfecto dan **el doble de experiencia** (`LAST_DAY_BOOST` en `seasons.ts`; para dar también monedas dobles, `coins: 2`). Se avisa con una franja en «Hoy», en la tienda y en el aviso de cada tarea. Solo cuenta lo que se completa ese día, no lo que se marca con fecha de días anteriores.
+- **Último día**: cada tarea y el día perfecto dan **el doble de experiencia y de monedas** (`LAST_DAY_BOOST` en `seasons.ts`), para que dé tiempo a comprar lo de la temporada. Se avisa con una franja en «Hoy», en la tienda y en el aviso de cada tarea. Solo cuenta lo que se completa ese día, no lo que se marca con fecha de días anteriores.
 
 | Temporada | Nombre | Fechas |
 |---|---|---|
