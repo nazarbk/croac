@@ -115,6 +115,8 @@ export interface HistoryEntry {
   details?: PenaltyDetail[];
   /** Origen de compras y premios especiales (p. ej. «patio-canvas», «patio-win:12»). */
   ref?: string;
+  /** Multiplicador de experiencia aplicado (p. ej. 2 el último día de temporada). */
+  boost?: number;
 }
 
 export interface AppNotification {
@@ -144,12 +146,12 @@ export interface Ctx {
 }
 
 export type GameEvent =
-  | { type: 'reward'; taskId: string; title: string; xp: number; coins: number; entryId: string; streak: number }
+  | { type: 'reward'; taskId: string; title: string; xp: number; coins: number; entryId: string; streak: number; boost?: number }
   | { type: 'levelUp'; level: number }
   | { type: 'levelDown'; level: number }
   | { type: 'evolve'; stage: string }
   | { type: 'devolve'; stage: string }
-  | { type: 'perfectDay'; xp: number; coins: number }
+  | { type: 'perfectDay'; xp: number; coins: number; boost?: number }
   | { type: 'penalty'; xp: number; details: PenaltyDetail[] }
   | { type: 'warning'; titles: string[] };
 

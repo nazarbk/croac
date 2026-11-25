@@ -67,7 +67,8 @@ export const SEASONS: Season[] = [
     name: 'Más allá del jardín',
     tagline: 'Farol en mano y hojas secas bajo las patas: el bosque espera.',
     start: '2026-11-26',
-    end: '2026-12-02',
+    // Desde la Temporada 2 duran dos semanas: más tiempo para ganar monedas.
+    end: '2026-12-09',
     colors: ['#c2410c', '#1e3a3a'],
     banner: 'season/s2-banner.webp',
     bannerPosition: '72% 45%',
@@ -114,6 +115,18 @@ export function inSeason(item: Pick<ShopItem, 'season'>, today: DateStr): boolea
 }
 
 /** Días que quedan incluyendo hoy (1 = último día). */
+/**
+ * Último día de temporada: lo que se gana ese día se multiplica para dar un último empujón
+ * antes de que cierre la tienda. Para dar también monedas dobles basta con `coins: 2`.
+ */
+export const LAST_DAY_BOOST = { xp: 2, coins: 1 } as const;
+
+/** El multiplicador de hoy, o null si no hay (solo el último día de una temporada en curso). */
+export function seasonBoost(today: DateStr): { season: Season; xp: number; coins: number } | null {
+  const s = currentSeason(today);
+  return s && today === s.end ? { season: s, ...LAST_DAY_BOOST } : null;
+}
+
 export function daysLeft(season: Season, today: DateStr): number {
   return diffDays(season.end, today) + 1;
 }

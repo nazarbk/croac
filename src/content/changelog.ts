@@ -22,9 +22,19 @@ export const CHANGELOG: Release[] = [
     title: 'Temporada 2: Más allá del jardín',
     art: 'ui/celebrate.webp',
     changes: [
-      { kind: 'nuevo', text: 'Temporada 2, «Más allá del jardín», hasta el miércoles 2 de diciembre: gorro de poeta, tetera por sombrero, gafas de calabaza y de rama, colgante de pajarito y farol del bosque.' },
+      { kind: 'nuevo', text: 'Temporada 2, «Más allá del jardín», hasta el miércoles 9 de diciembre: gorro de poeta, tetera por sombrero, gafas de calabaza y de rama, colgante de pajarito y farol del bosque.' },
       { kind: 'nuevo', text: 'Dos fondos otoñales: el atardecer de calabazas y la charca del bosque oscuro.' },
+      { kind: 'mejora', text: 'Las temporadas duran ahora dos semanas: más tiempo para ahorrar monedas y hacerte con todo.' },
       { kind: 'mejora', text: 'Lo que compraste en la Temporada 1 sigue siendo tuyo y lo encuentras en la tienda y en el armario.' },
+    ],
+  },
+  {
+    version: '1.3.1',
+    date: '2026-11-25',
+    title: 'Último día: doble de experiencia',
+    art: 'ui/celebrate.webp',
+    changes: [
+      { kind: 'nuevo', text: 'El último día de cada temporada, cada tarea (y el día perfecto) da el doble de experiencia. ¡Aprovecha para terminar la colección!' },
     ],
   },
   {

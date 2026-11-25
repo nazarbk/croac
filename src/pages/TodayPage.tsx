@@ -7,6 +7,7 @@ import { SortableList } from '../components/tasks/Sortable';
 import { SortMenu } from '../components/tasks/SortMenu';
 import { Frog } from '../components/frog/Frog';
 import { InstallBanner } from '../features/install';
+import { SeasonBoostBanner } from '../features/SeasonBoost';
 import { EmptyState } from '../components/ui/controls';
 import { Icon } from '../components/ui/Icon';
 import { actions } from '../store/actions';
@@ -111,6 +112,7 @@ export function TodayPage() {
         <QuickAdd defaultDate={today} />
       </div>
 
+      <SeasonBoostBanner />
       <InstallBanner />
 
       {penalized.length > 0 && !vacation && (

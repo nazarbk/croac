@@ -8,6 +8,7 @@ import {
   levelInfo, MAX_PENALTY_CATCHUP_DAYS, PERFECT_DAY_BONUS, dailyPenaltyFor, rewardFor, stageForLevel,
 } from './progression';
 import { isRecurring, nextOccurrence, prevOccurrence } from './recurrence';
+import { seasonBoost } from './seasons';
 import { canBuy, itemById } from './shop';
 import { can } from './plans';
 import type {
@@ -158,9 +159,11 @@ function isPerfectDay(state: AppState, date: DateStr): boolean {
 function checkPerfectDay(state: AppState, ctx: Ctx): EngineResult {
   const date = ctx.today;
   if (state.meta.perfectDays.includes(date) || !isPerfectDay(state, date)) return { state, events: [] };
+  const boost = seasonBoost(date);
   const entry: HistoryEntry = {
     id: uid('h'), type: 'bonus', date, at: ctx.now,
-    xp: PERFECT_DAY_BONUS.xp, coins: PERFECT_DAY_BONUS.coins, title: 'Día perfecto',
+    xp: PERFECT_DAY_BONUS.xp * (boost?.xp ?? 1), coins: PERFECT_DAY_BONUS.coins * (boost?.coins ?? 1), title: 'Día perfecto',
+    ...(boost && { boost: boost.xp }),
   };
   let next: AppState = {
     ...state,
@@ -170,7 +173,7 @@ function checkPerfectDay(state: AppState, ctx: Ctx): EngineResult {
   };
   const r = applyXp(next, entry.xp, ctx);
   next = r.state;
-  return { state: next, events: [{ type: 'perfectDay', ...PERFECT_DAY_BONUS }, ...r.events] };
+  return { state: next, events: [{ type: 'perfectDay', xp: entry.xp, coins: entry.coins, boost: entry.boost }, ...r.events] };
 }
 
 export function completeTask(state: AppState, taskId: string, ctx: Ctx, opts: { on?: DateStr } = {}): EngineResult {
@@ -181,11 +184,15 @@ export function completeTask(state: AppState, taskId: string, ctx: Ctx, opts: { 
   const late = !!task.dueDate && task.dueDate < on;
   const completions = [...completionDates(state.history, task.id), on];
   const streak = isRecurring(task.recurrence) ? taskStreak(task, completions, on) : 0;
-  const reward = rewardFor(task, { streak, late });
+  const base = rewardFor(task, { streak, late });
+  // Multiplicador del último día de temporada (solo para lo que se hace hoy, no para días pasados).
+  const boost = on === ctx.today ? seasonBoost(ctx.today) : null;
+  const reward = boost ? { xp: base.xp * boost.xp, coins: base.coins * boost.coins } : base;
 
   const entry: HistoryEntry = {
     id: uid('h'), type: 'complete', date: on, at: ctx.now,
     xp: reward.xp, coins: reward.coins, title: task.title, taskId: task.id, listId: task.listId,
+    ...(boost && { boost: boost.xp }),
     prev: { dueDate: task.dueDate, status: task.status, subtasks: task.subtasks, completedAt: task.completedAt },
   };
 
@@ -211,7 +218,7 @@ export function completeTask(state: AppState, taskId: string, ctx: Ctx, opts: { 
     frog: { ...state.frog, coins: state.frog.coins + reward.coins },
   };
   const events: GameEvent[] = [
-    { type: 'reward', taskId: task.id, title: task.title, xp: reward.xp, coins: reward.coins, entryId: entry.id, streak },
+    { type: 'reward', taskId: task.id, title: task.title, xp: reward.xp, coins: reward.coins, entryId: entry.id, streak, boost: entry.boost },
   ];
   const xpRes = applyXp(next, reward.xp, ctx);
   next = xpRes.state;

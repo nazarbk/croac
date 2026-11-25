@@ -8,6 +8,7 @@ import type { Difficulty, Priority, Subtask, TaskStatus } from '../../domain/typ
 import { cn } from '../../lib/cn';
 import { actions } from '../../store/actions';
 import { appStore, useApp, useToday } from '../../store/appStore';
+import { seasonBoost } from '../../domain/seasons';
 import { ui, useUi } from '../../store/uiStore';
 import { deleteWithUndo } from '../../features/feedback';
 import { Button, IconButton } from '../ui/Button';
@@ -86,7 +87,9 @@ export function TaskEditor() {
   const refDate = draft.date ?? today;
   const nextDate = recurring ? occurrenceOnOrAfter(draft.recurrence, refDate, refDate < today ? today : refDate) : null;
   const streak = task && recurring ? taskStreak(task, completionDates(appStore.get().history, task.id), today) : 0;
-  const reward = rewardFor({ difficulty: draft.difficulty }, { streak: streak + 1, late: false });
+  const base = rewardFor({ difficulty: draft.difficulty }, { streak: streak + 1, late: false });
+  const boost = seasonBoost(today);
+  const reward = boost ? { xp: base.xp * boost.xp, coins: base.coins * boost.coins } : base;
 
   const save = () => {
     if (!draft.title.trim()) return;
@@ -225,7 +228,7 @@ export function TaskEditor() {
           </div>
         </Field>
 
-        <Field label="Dificultad" hint={`Recompensa: +${reward.xp} XP y +${reward.coins} monedas${streak > 1 ? ` (incluye bonus por racha de ${streak})` : ''}.`}>
+        <Field label="Dificultad" hint={`Recompensa: +${reward.xp} XP y +${reward.coins} monedas${streak > 1 ? ` (incluye bonus por racha de ${streak})` : ''}${boost ? ` Hoy, último día de temporada: XP ×${boost.xp}.` : ''}`}>
           <Segmented<Difficulty>
             full
             value={draft.difficulty}

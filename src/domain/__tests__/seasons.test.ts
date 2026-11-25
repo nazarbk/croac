@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isNewer } from '../../content/changelog';
-import { daysLeft, inSeason, type Season } from '../seasons';
+import { daysLeft, inSeason, LAST_DAY_BOOST, SEASONS, seasonBoost, type Season } from '../seasons';
 import { canBuy } from '../shop';
 
 const season: Season = {
@@ -22,6 +22,21 @@ describe('temporadas', () => {
   it('cuenta los días que quedan incluyendo hoy', () => {
     expect(daysLeft(season, '2026-11-19')).toBe(7);
     expect(daysLeft(season, '2026-11-25')).toBe(1);
+  });
+
+  it('desde la Temporada 2 duran dos semanas y no se solapan', () => {
+    const later = SEASONS.filter((s) => s.number >= 2);
+    for (const s of later) expect(daysLeft(s, s.start)).toBe(14);
+    const sorted = [...SEASONS].sort((a, b) => a.start.localeCompare(b.start));
+    for (let i = 1; i < sorted.length; i++) expect(sorted[i].start > sorted[i - 1].end).toBe(true);
+  });
+
+  it('el multiplicador solo funciona el último día de una temporada', () => {
+    const s1 = SEASONS[0];
+    expect(seasonBoost(s1.end)?.season.id).toBe(s1.id);
+    expect(seasonBoost(s1.end)?.xp).toBe(LAST_DAY_BOOST.xp);
+    expect(seasonBoost(s1.start)).toBeNull();
+    expect(seasonBoost('2030-01-01')).toBeNull();
   });
 
   it('canBuy rechaza artículos fuera de temporada', () => {
