@@ -86,6 +86,7 @@ Para probar en local, crea un archivo `.env` (no se sube a Git) copiando `.env.e
 | `profiles` | Perfil público: nombre de usuario, código de amigo y estadísticas de la rana (nivel, ánimo, complementos, XP y tareas de la semana) |
 | `friendships` | Solicitudes y amistades (`pending` → `accepted`) |
 | `user_state` | Copia completa del estado de la app de cada usuario (JSON) para sincronizar |
+| `user_state_versions` | Versiones anteriores de `user_state` (las guarda un trigger) para recuperar datos |
 | `admins` | Quién es administrador. Sin acceso desde la API: solo se cambia en el SQL Editor |
 | `patio_entries`, `patio_votes`, `patio_reports` | El patio del complemento: dibujos, votos y denuncias (ver `docs/PATIO.md`) |
 | `app_config` | Configuración pública de la app (p. ej. `accessory-fit`, los ajustes de los complementos publicados desde el probador). La lee cualquiera; solo la escriben administradores |
@@ -101,6 +102,15 @@ Para probar en local, crea un archivo `.env` (no se sube a Git) copiando `.env.e
 - Cada usuario solo puede leer y escribir lo suyo y ver el perfil de sus amigos (y de quien le ha enviado solicitud).
 - La app usa la API REST de Supabase directamente (`src/services/backend.ts`), sin SDK. Cambiar de proveedor = otra implementación de la interfaz `Backend` (`src/services/types.ts`).
 - El ranking usa las estadísticas que publica cada dispositivo. Entre amigos es suficiente, pero se puede falsear; ver `docs/AUDITORIA.md`.
+
+## Cómo se sincroniza (v1.4.1)
+
+- Cada dispositivo guarda sus datos y los sube a `user_state`. Si la nube cambió desde la última vez, **se combinan** las dos copias (nada se pisa): se juntan el historial, las tareas (gana la modificada más tarde), las compras y los días perfectos; lo borrado se recuerda para que no vuelva.
+- La subida es condicional: solo se escribe si la nube sigue en la versión que conocía el dispositivo; si no, primero se combina.
+- El cierre del día (penalizaciones) espera a traer lo de la nube, para no penalizar con datos viejos.
+- **Copias**: antes de cambiar los datos de un dispositivo se guarda una copia local (3 últimas) y el servidor guarda versiones anteriores en `user_state_versions` (todas las de la última media hora, una por hora durante 2 días y una por día durante 14 días). En **Ajustes → Tus datos → Recuperar datos** se combina cualquiera con lo actual. Importar un archivo también combina.
+
+Para activar las copias del servidor hay que volver a ejecutar `supabase/schema.sql` (v1.4.1).
 
 ## Actualizar a la v1.3 (el patio)
 

@@ -87,6 +87,8 @@ export interface Meta {
   plan: Plan;
   /** Lienzos del patio comprados y sin usar. */
   patioCanvases?: number;
+  /** Ids borrados (tareas, listas, entradas deshechas) → cuándo; para que otro dispositivo no los resucite al sincronizar. */
+  removed?: Record<string, number>;
 }
 
 export type HistoryType = 'complete' | 'penalty' | 'bonus' | 'purchase';

@@ -5,7 +5,7 @@
  *   VITE_SUPABASE_ANON_KEY=sb_publishable_...   (o la clave «anon» antigua, eyJ...)
  * El esquema de la base de datos está en supabase/schema.sql.
  */
-import { ApiError, type Backend, type Friendship, type PatioEntry, type PatioWinner, type Profile, type RemoteConfig, type RemoteState, type Session } from './types';
+import { ApiError, type Backend, type Friendship, type PatioEntry, type PatioWinner, type Profile, type RemoteConfig, type RemoteState, type Session, type StateVersion } from './types';
 
 const clean = (v: unknown) => (typeof v === 'string' ? v.trim().replace(/^["']|["']$/g, '') : '');
 
@@ -226,11 +226,44 @@ export const backend: Backend = {
     return rows[0] ? { state: rows[0].state, updatedAt: rows[0].updated_at } : null;
   },
 
-  async pushState(s, state, updatedAt) {
-    await call('/rest/v1/user_state', {
-      method: 'POST', token: s.accessToken, prefer: 'resolution=merge-duplicates',
-      body: JSON.stringify({ user_id: s.userId, state, updated_at: updatedAt }),
-    });
+  async pushState(s, state, updatedAt, expected) {
+    // Escritura condicional: solo si la nube sigue en la versión que conocemos. Si otro
+    // dispositivo subió algo entretanto, se avisa (sync_conflict) para fusionar antes.
+    if (expected) {
+      const rows = await call<unknown[]>(
+        `/rest/v1/user_state?user_id=eq.${s.userId}&updated_at=eq.${encodeURIComponent(expected)}&select=user_id`,
+        { method: 'PATCH', token: s.accessToken, prefer: 'return=representation', body: JSON.stringify({ state, updated_at: updatedAt }) },
+      );
+      if (!rows.length) throw new ApiError('sync_conflict', 'La nube ha cambiado', 409);
+      return;
+    }
+    try {
+      await call('/rest/v1/user_state', {
+        method: 'POST', token: s.accessToken,
+        body: JSON.stringify({ user_id: s.userId, state, updated_at: updatedAt }),
+      });
+    } catch (e) {
+      // Ya había datos en la nube (otro dispositivo se adelantó): hay que fusionar.
+      if (e instanceof ApiError && (e.status === 409 || e.code === 'username_taken')) throw new ApiError('sync_conflict', 'La nube ya tiene datos', 409);
+      throw e;
+    }
+  },
+
+  async listStateVersions(s) {
+    try {
+      return await call<StateVersion[]>(
+        `/rest/v1/user_state_versions?user_id=eq.${s.userId}&select=id,saved_at,updated_at,xp:state->frog->xp,coins:state->frog->coins&order=saved_at.desc&limit=60`,
+        { token: s.accessToken },
+      );
+    } catch (e) {
+      if (e instanceof ApiError && e.code === 'schema_missing') return [];
+      throw e;
+    }
+  },
+
+  async getStateVersion(s, id) {
+    const rows = await call<{ state: unknown }[]>(`/rest/v1/user_state_versions?id=eq.${id}&user_id=eq.${s.userId}&select=state`, { token: s.accessToken });
+    return rows[0]?.state ?? null;
   },
 
   async isAdmin(s) {

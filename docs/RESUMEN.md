@@ -62,7 +62,9 @@ croac/
     │   ├── types.ts            Interfaz Backend, Profile, Session, errores traducidos
     │   ├── backend.ts          Implementación Supabase (REST)
     │   ├── account.ts          Sesión, renovación de tokens, perfil, estadísticas públicas
-    │   ├── sync.ts             Sincronización del estado (last-write-wins) y publicación del perfil
+    │   ├── sync.ts             Sincronización del estado (fusión + subida condicional) y publicación del perfil
+    │   ├── merge.ts            Fusión de dos copias del estado sin perder nada (marcas de borrado)
+    │   ├── backups.ts          Copias automáticas en el dispositivo (las de la nube: user_state_versions)
     │   └── social.ts           Amigos, solicitudes, puntuación semanal, enlace de invitación
     ├── components/
     │   ├── ui/                 Button, Modal (hoja inferior en móvil), Menu, Segmented, Switch, Toaster…
@@ -136,7 +138,7 @@ Variables opcionales (`.env`): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (ve
 
 ## 9. Limitaciones conocidas
 
-Ver `docs/AUDITORIA.md` para el detalle. Las principales: el cierre diario y el ranking se calculan en el cliente (se pueden falsear), la sincronización es "gana el último", los recordatorios solo funcionan con la app abierta y falta la política de privacidad.
+Ver `docs/AUDITORIA.md` para el detalle. Las principales: el cierre diario y el ranking se calculan en el cliente (se pueden falsear),  los recordatorios solo funcionan con la app abierta y falta la política de privacidad.
 
 ## 10. Qué revisar con más atención
 

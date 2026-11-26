@@ -367,3 +367,44 @@ create policy "patio: subir a mi carpeta" on storage.objects for insert to authe
 drop policy if exists "patio: borrar de mi carpeta" on storage.objects;
 create policy "patio: borrar de mi carpeta" on storage.objects for delete to authenticated
   using (bucket_id = 'patio' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ---------- Copias automáticas del estado (v1.4.1) ----------
+-- Cada vez que se sobrescribe user_state, el servidor guarda la versión anterior. Se conservan:
+-- todas las de la última media hora, una por hora durante 2 días y una por día durante 14 días
+-- (unas 90 por usuario activo como mucho). Desde Ajustes → Tus datos → Recuperar datos se puede
+-- combinar cualquiera con lo actual para recuperar lo que falte.
+create table if not exists public.user_state_versions (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  state      jsonb not null,
+  updated_at timestamptz not null,
+  saved_at   timestamptz not null default now()
+);
+create index if not exists user_state_versions_user on public.user_state_versions (user_id, saved_at desc);
+alter table public.user_state_versions enable row level security;
+drop policy if exists "mis copias" on public.user_state_versions;
+create policy "mis copias" on public.user_state_versions for select to authenticated using (user_id = auth.uid());
+grant select on public.user_state_versions to authenticated;
+
+create or replace function public.user_state_keep_version() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if old.state is distinct from new.state then
+    insert into public.user_state_versions (user_id, state, updated_at) values (old.user_id, old.state, old.updated_at);
+    delete from public.user_state_versions v
+    where v.user_id = old.user_id and (
+      v.saved_at < now() - interval '14 days'
+      or (v.saved_at < now() - interval '2 days' and exists (
+        select 1 from public.user_state_versions w where w.user_id = v.user_id
+          and date_trunc('day', w.saved_at) = date_trunc('day', v.saved_at) and w.saved_at > v.saved_at))
+      or (v.saved_at < now() - interval '30 minutes' and exists (
+        select 1 from public.user_state_versions w where w.user_id = v.user_id
+          and date_trunc('hour', w.saved_at) = date_trunc('hour', v.saved_at) and w.saved_at > v.saved_at))
+    );
+  end if;
+  return new;
+end $$;
+revoke all on function public.user_state_keep_version() from public, anon, authenticated;
+drop trigger if exists user_state_keep_version on public.user_state;
+create trigger user_state_keep_version before update on public.user_state
+  for each row execute function public.user_state_keep_version();

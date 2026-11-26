@@ -9,8 +9,10 @@ import { cn } from '../lib/cn';
 import { requestNotificationPermission } from '../features/reminders';
 import { InstallCard } from '../features/install';
 import { AccountCard } from '../features/account';
+import { BackupsModal, describeRestore } from '../features/Backups';
+import { restoreBackup } from '../services/sync';
 import { actions } from '../store/actions';
-import { useApp } from '../store/appStore';
+import { appStore, useApp } from '../store/appStore';
 import { useIsAdmin } from '../services/admin';
 import { ui } from '../store/uiStore';
 
@@ -43,6 +45,7 @@ export function SettingsPage() {
   const frogName = useApp((s) => s.frog.name);
   const set = (p: Partial<Settings>) => actions.updateSettings(p);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [backupsOpen, setBackupsOpen] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
   const exportData = () => {
@@ -55,9 +58,24 @@ export function SettingsPage() {
     URL.revokeObjectURL(url);
   };
 
+  // Importar COMBINA con lo que hay (no borra nada); en un dispositivo vacío, lo carga tal cual.
   const importData = async (file: File) => {
-    const r = actions.importData(await file.text());
-    ui.toast(r.ok ? { message: 'Copia restaurada' } : { message: r.error!, tone: 'danger' });
+    const text = await file.text();
+    const s = appStore.get();
+    if (!s.tasks.length && !s.history.length) {
+      const r = actions.importData(text);
+      ui.toast(r.ok ? { message: 'Copia restaurada' } : { message: r.error!, tone: 'danger' });
+      return;
+    }
+    let raw: unknown;
+    try {
+      raw = JSON.parse(text);
+    } catch {
+      ui.toast({ message: 'No se pudo leer el archivo. Comprueba que es un .json exportado desde Croac.', tone: 'danger' });
+      return;
+    }
+    const r = await restoreBackup(raw);
+    ui.toast(r ? { message: describeRestore(r), tone: 'reward', duration: 7000 } : { message: 'El archivo no tiene el formato de una copia de Croac.', tone: 'danger' });
   };
 
   return (
@@ -164,11 +182,14 @@ export function SettingsPage() {
         </div>
       </section>
 
-      <Card title="Tus datos" description="Todo se guarda en este dispositivo. Haz una copia de vez en cuando.">
+      <Card title="Tus datos" description="Se guardan en este dispositivo y, con cuenta, en la nube. Además se hacen copias automáticas.">
+        <Row label="Recuperar datos" description="¿Te falta algo? Recupera tareas hechas, compras o experiencia de una copia automática, sin borrar nada.">
+          <Button size="sm" icon="history" onClick={() => setBackupsOpen(true)}>Ver copias</Button>
+        </Row>
         <Row label="Exportar copia" description="Descarga un archivo .json con todas tus tareas y tu rana.">
           <Button size="sm" icon="download" onClick={exportData}>Exportar</Button>
         </Row>
-        <Row label="Importar copia" description="Sustituye los datos actuales por los del archivo.">
+        <Row label="Importar copia" description="Añade lo que tenga el archivo y ahora falte (tareas hechas, compras, experiencia). No borra nada.">
           <Button size="sm" icon="upload" onClick={() => fileRef.current?.click()}>Importar</Button>
           <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void importData(f); e.target.value = ''; }} />
         </Row>
@@ -192,6 +213,7 @@ export function SettingsPage() {
 
       <p className="text-center text-xs text-muted mt-8">Croac v{__APP_VERSION__}</p>
 
+      <BackupsModal open={backupsOpen} onClose={() => setBackupsOpen(false)} />
       <Modal
         open={confirmReset} onClose={() => setConfirmReset(false)} size="sm" title="¿Borrar todos los datos?"
         footer={<><Button variant="ghost" onClick={() => setConfirmReset(false)}>Cancelar</Button><Button variant="danger" onClick={() => { actions.resetAll(); setConfirmReset(false); }}>Borrar todo</Button></>}

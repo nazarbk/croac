@@ -227,13 +227,14 @@ export function SyncConflictModal() {
     <Modal open dismissable={false} onClose={() => {}} size="sm" title="¿Qué datos quieres conservar?">
       <p className="text-[15px] leading-relaxed">
         Tu cuenta ya tiene datos guardados ({remoteTasks} {remoteTasks === 1 ? 'tarea' : 'tareas'}) y este dispositivo también tiene los suyos.
-        Elige con cuáles seguir; los otros se sustituirán.
+        Lo más seguro es combinarlos: se juntan las tareas, lo hecho y las compras de los dos, sin perder nada.
       </p>
       <div className="mt-5 grid gap-2">
-        <Button variant="primary" icon="cloud" onClick={() => void resolveConflict('cloud')}>Usar los de mi cuenta</Button>
-        <Button icon="smartphone" onClick={() => void resolveConflict('device')}>Subir los de este dispositivo</Button>
+        <Button variant="primary" icon="refresh" onClick={() => void resolveConflict('merge')}>Combinar los dos (recomendado)</Button>
+        <Button icon="cloud" onClick={() => void resolveConflict('cloud')}>Usar solo los de mi cuenta</Button>
+        <Button variant="ghost" icon="smartphone" onClick={() => void resolveConflict('device')}>Usar solo los de este dispositivo</Button>
       </div>
-      <p className="text-[13px] text-muted mt-4">Consejo: si no estás seguro, exporta antes una copia desde Ajustes → Tus datos.</p>
+      <p className="text-[13px] text-muted mt-4">Con «usar solo», los otros se sustituyen, aunque se guarda una copia que puedes recuperar en Ajustes → Tus datos.</p>
     </Modal>
   );
 }

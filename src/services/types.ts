@@ -42,6 +42,14 @@ export interface Friendship {
   created_at: string;
 }
 
+export interface StateVersion {
+  id: number;
+  saved_at: string;
+  updated_at: string;
+  xp: number | null;
+  coins: number | null;
+}
+
 export interface RemoteState {
   state: unknown;
   updatedAt: string;
@@ -73,7 +81,11 @@ export interface Backend {
   acceptFriend(s: Session, requesterId: string): Promise<void>;
   removeFriendship(s: Session, otherId: string): Promise<void>;
   pullState(s: Session): Promise<RemoteState | null>;
-  pushState(s: Session, state: unknown, updatedAt: string): Promise<void>;
+  /** Sube el estado. Con `expected`, solo si la nube sigue en esa versión (si no: ApiError 'sync_conflict'). */
+  pushState(s: Session, state: unknown, updatedAt: string, expected: string | null): Promise<void>;
+  /** Copias automáticas del estado en la nube (las guarda el servidor al sobrescribir). */
+  listStateVersions(s: Session): Promise<StateVersion[]>;
+  getStateVersion(s: Session, id: number): Promise<unknown>;
   /** ¿Es administrador? Lo decide el servidor (tabla admins), no el navegador. */
   isAdmin(s: Session): Promise<boolean>;
   /** Configuración pública de la app (p. ej. los ajustes de los complementos). */

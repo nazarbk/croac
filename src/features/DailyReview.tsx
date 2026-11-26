@@ -10,6 +10,7 @@ import { actions } from '../store/actions';
 import { appStore, useApp, useToday } from '../store/appStore';
 import { useFrogInfo } from '../store/selectors';
 import { Icon } from '../components/ui/Icon';
+import { useSyncReady } from '../services/sync';
 
 /**
  * Al empezar un día nuevo: si quedaron tareas sin marcar, se pregunta antes de
@@ -21,10 +22,12 @@ export function DailyReview() {
   const [pending, setPending] = useState<Task[] | null>(null);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const info = useFrogInfo();
+  // Con cuenta, se espera a traer lo de la nube: así no se penaliza con datos viejos.
+  const ready = useSyncReady();
 
   useEffect(() => {
     const s = appStore.get();
-    if (!s.meta.onboarded || !needsRollover(s, today)) return;
+    if (!ready || !s.meta.onboarded || !needsRollover(s, today)) return;
     const review = tasksForReview(s, today);
     if (review.length === 0 || s.settings.vacationMode) {
       actions.rollover();
@@ -32,7 +35,7 @@ export function DailyReview() {
       setChecked(new Set());
       setPending(review);
     }
-  }, [today, onboarded]);
+  }, [today, onboarded, ready]);
 
   if (!pending) return null;
 

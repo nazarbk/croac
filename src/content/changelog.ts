@@ -17,6 +17,17 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.4.1',
+    date: '2026-11-26',
+    title: 'Tus datos, a salvo entre dispositivos',
+    art: 'ui/celebrate.webp',
+    changes: [
+      { kind: 'arreglo', text: 'Al abrir la app en un dispositivo que llevaba días sin usarse, podía sustituir lo que habías hecho en otro (tareas, compras, experiencia). Ahora se combinan las dos copias y no se pierde nada.' },
+      { kind: 'arreglo', text: 'El cierre del día espera a traer tus datos de la nube, así no te penaliza por tareas que ya hiciste en otro dispositivo.' },
+      { kind: 'nuevo', text: 'Ajustes → Tus datos → Recuperar datos: copias automáticas (en este dispositivo y en la nube) que puedes combinar con lo actual para recuperar lo que falte. Importar una copia ahora también combina en lugar de sustituir.' },
+    ],
+  },
+  {
     version: '1.4.0',
     date: '2026-11-26',
     title: 'Temporada 2: Más allá del jardín',
