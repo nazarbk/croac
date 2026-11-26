@@ -43,13 +43,16 @@ export type SyncStatus = 'off' | 'idle' | 'syncing' | 'error' | 'conflict';
 interface SyncState {
   status: SyncStatus;
   lastSyncedAt: string | null;
+  /** Última vez que se comprobó que este dispositivo y la nube están al día (ms). */
+  checkedAt: number | null;
   /** Datos de la nube pendientes de decidir (primera vez en este dispositivo). */
   conflict: RemoteState | null;
   /** Ya se ha intentado la primera sincronización (o no hace falta): se puede cerrar el día. */
   ready: boolean;
 }
 
-export const syncStore = createStore<SyncState>({ status: 'off', lastSyncedAt: null, conflict: null, ready: !backend.enabled });
+let meta = loadMeta();
+export const syncStore = createStore<SyncState>({ status: 'off', lastSyncedAt: meta.lastSyncedAt, checkedAt: null, conflict: null, ready: !backend.enabled });
 export const useSync = () => useStore(syncStore, (s) => s);
 export const useSyncReady = () => useStore(syncStore, (s) => s.ready);
 const markReady = () => { if (!syncStore.get().ready) syncStore.set((s) => ({ ...s, ready: true })); };
@@ -62,7 +65,6 @@ function loadMeta(): SyncMeta {
   }
 }
 
-let meta = loadMeta();
 function saveMeta(p: Partial<SyncMeta>) {
   meta = { ...meta, ...p };
   try {
@@ -74,6 +76,7 @@ function saveMeta(p: Partial<SyncMeta>) {
 }
 
 const setStatus = (status: SyncStatus) => syncStore.set((s) => (s.status === status ? s : { ...s, status }));
+const markChecked = () => syncStore.set((s) => ({ ...s, status: 'idle', checkedAt: Date.now() }));
 
 let applyingRemote = false;
 /** Sube con cada cambio local: para no marcar «sin cambios» si algo cambió durante una subida. */
@@ -127,14 +130,14 @@ async function pushInner(): Promise<void> {
       try {
         await withSession((s) => backend.pushState(s, appStore.get(), at, meta.lastSyncedAt));
         saveMeta({ lastSyncedAt: at, dirty: changeSeq !== seq });
-        setStatus('idle');
+        markChecked();
         return;
       } catch (e) {
         if (!(e instanceof ApiError && e.code === 'sync_conflict')) throw e;
         // Otro dispositivo subió algo: se trae, se combina y se vuelve a intentar.
         const remote = await withSession((s) => backend.pullState(s));
         if (!remote) { saveMeta({ lastSyncedAt: null }); continue; }
-        if (!absorb(remote)) { setStatus('idle'); return; }
+        if (!absorb(remote)) { markChecked(); return; }
       }
     }
     setStatus('error');
@@ -173,7 +176,7 @@ export function pullNow() {
       } else if (meta.dirty) {
         await pushInner();
       }
-      setStatus('idle');
+      if (syncStore.get().status !== 'error') markChecked();
     } catch {
       setStatus('error');
     } finally {

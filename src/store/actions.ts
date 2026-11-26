@@ -250,6 +250,11 @@ export const actions = {
     return claimed;
   },
 
+  /** Solo administración: añade un complemento al armario sin pagarlo (p. ej. para devolver uno perdido). */
+  grantItem(itemId: string) {
+    patch((s) => (s.frog.owned.includes(itemId) ? s : { ...s, frog: { ...s.frog, owned: [...s.frog.owned, itemId] } }));
+  },
+
   renameFrog(name: string) {
     const clean = name.trim().slice(0, 24);
     if (clean) patch((s) => ({ ...s, frog: { ...s.frog, name: clean } }));

@@ -6,7 +6,7 @@ import { Modal } from '../components/ui/Modal';
 import { cn } from '../lib/cn';
 import { account, accountStore, cloudEnabled, pendingUsername, useAccount, USERNAME_RE } from '../services/account';
 import { social } from '../services/social';
-import { pullNow, resolveConflict, useSync } from '../services/sync';
+import { pullNow, resolveConflict, syncStore, useSync } from '../services/sync';
 import { friendlyError } from '../services/types';
 import { createStore, useStore } from '../store/createStore';
 import { ui } from '../store/uiStore';
@@ -16,9 +16,17 @@ type AuthMode = 'signin' | 'signup' | 'reset';
 const authStore = createStore<{ open: boolean; mode: AuthMode }>({ open: false, mode: 'signup' });
 export const openAuth = (mode: AuthMode = 'signup') => authStore.set({ open: true, mode });
 
-function timeAgo(iso: string | null) {
-  if (!iso) return 'nunca';
-  const min = Math.round((Date.now() - Date.parse(iso)) / 60000);
+/** «Sincronizar ahora»: trae, combina y sube, y dice cómo ha ido. */
+async function syncByHand() {
+  await pullNow();
+  const { status } = syncStore.get();
+  if (status === 'error') ui.toast({ message: 'No se ha podido sincronizar. Comprueba la conexión.', tone: 'danger' });
+  else if (status !== 'conflict') ui.toast({ message: 'Todo sincronizado' });
+}
+
+function timeAgo(at: string | number | null) {
+  if (!at) return 'nunca';
+  const min = Math.round((Date.now() - (typeof at === 'number' ? at : Date.parse(at))) / 60000);
   if (min < 1) return 'ahora mismo';
   if (min < 60) return `hace ${min} min`;
   const h = Math.round(min / 60);
@@ -246,6 +254,12 @@ export function AccountCard() {
   const [copied, setCopied] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Para que «hace X min» se actualice solo.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   if (!cloudEnabled) {
     return (
@@ -281,7 +295,7 @@ export function AccountCard() {
     sync.status === 'syncing' ? 'Sincronizando…'
       : sync.status === 'error' ? 'No se ha podido sincronizar. Se reintentará solo.'
         : sync.status === 'conflict' ? 'Elige qué datos conservar'
-          : `Sincronizado ${timeAgo(sync.lastSyncedAt)}`;
+          : `Sincronizado ${timeAgo(sync.checkedAt ?? sync.lastSyncedAt)}`;
 
   return (
     <section className="mt-5 rounded-[1.5rem] bg-surface border border-line shadow-card p-5">
@@ -311,7 +325,9 @@ export function AccountCard() {
           )}
           <div className="mt-3 flex flex-wrap gap-2">
             {!profile && <Button variant="primary" onClick={() => openAuth('signin')}>Elegir nombre</Button>}
-            <Button size="sm" icon="refresh" onClick={() => void pullNow()}>Sincronizar ahora</Button>
+            <Button size="sm" icon="refresh" disabled={sync.status === 'syncing'} onClick={() => void syncByHand()}>
+              {sync.status === 'syncing' ? 'Sincronizando…' : 'Sincronizar ahora'}
+            </Button>
             <Button size="sm" variant="ghost" icon="logOut" onClick={() => { void account.signOut(); social.clear(); }}>Cerrar sesión</Button>
           </div>
           <button type="button" onClick={() => setConfirmDelete(true)} className="mt-4 text-[13px] text-muted hover:text-danger underline-offset-2 hover:underline">

@@ -1,6 +1,8 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { Button } from '../components/ui/Button';
-import { Segmented, Switch } from '../components/ui/controls';
+import { inputClass, Segmented, Switch } from '../components/ui/controls';
+import { CATALOG } from '../domain/shop';
+import { seasonById } from '../domain/seasons';
 import { Icon } from '../components/ui/Icon';
 import { Modal } from '../components/ui/Modal';
 import { PLANS } from '../domain/plans';
@@ -23,6 +25,27 @@ function Card({ title, children, description }: { title: string; description?: s
       {description && <p className="text-sm text-muted mt-0.5">{description}</p>}
       <div className="mt-1 divide-y divide-line">{children}</div>
     </section>
+  );
+}
+
+/** Administración: devolver a tu armario un complemento perdido (también de temporadas pasadas). */
+function GrantItemRow() {
+  const owned = useApp((s) => s.frog.owned);
+  const options = CATALOG.filter((i) => i.slot !== 'skin' && !owned.includes(i.id));
+  const [id, setId] = useState('');
+  const item = options.find((i) => i.id === id);
+  return (
+    <Row label="Recuperar un complemento" description="Añade a tu armario un complemento sin pagarlo, aunque sea de una temporada que ya terminó. Solo para tu cuenta.">
+      <div className="flex gap-2 w-full sm:w-auto">
+        <select aria-label="Complemento" value={id} onChange={(e) => setId(e.target.value)} className={cn(inputClass, 'h-10 py-0 min-w-0 flex-1 sm:w-56')}>
+          <option value="">Elige uno…</option>
+          {options.map((i) => (
+            <option key={i.id} value={i.id}>{i.name}{i.season ? ` · T${seasonById(i.season)?.number ?? ''}` : ''}</option>
+          ))}
+        </select>
+        <Button size="sm" disabled={!item} onClick={() => { if (!item) return; actions.grantItem(item.id); ui.toast({ message: `«${item.name}» ya está en tu armario` }); setId(''); }}>Añadir</Button>
+      </div>
+    </Row>
   );
 }
 
@@ -92,6 +115,7 @@ export function SettingsPage() {
               Abrir <Icon name="chevronRight" size={16} />
             </a>
           </Row>
+          <GrantItemRow />
         </Card>
       )}
       <InstallCard />
