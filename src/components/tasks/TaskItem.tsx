@@ -278,7 +278,7 @@ export function TaskItem({ task, today, list, streak = 0, showDate = true, showL
               )}
             </span>
             <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted mt-1 empty:hidden">
-              {od > 0 && !done && (
+              {od > 0 && !done && !ghost && (
                 <span className={cn('flex items-center gap-1 font-semibold', od > graceDays ? 'text-danger' : 'text-warn')}>
                   <Icon name={od > graceDays ? 'alert' : 'clock'} size={13} />
                   {od === 1 ? 'Ayer' : `Hace ${od} días`}

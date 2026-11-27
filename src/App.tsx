@@ -15,7 +15,6 @@ import { ShopPage } from './pages/ShopPage';
 import { StatsPage } from './pages/StatsPage';
 import { TasksPage } from './pages/TasksPage';
 import { TodayPage } from './pages/TodayPage';
-import { UpcomingPage } from './pages/UpcomingPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { PondPage } from './pages/PondPage';
 import { FriendsPage } from './pages/FriendsPage';
@@ -42,7 +41,8 @@ const WARDROBE_PATHS = ['admin/probador', 'dev/wardrobe'];
 
 const PAGES: Record<RouteName, { title: string; Component: () => React.ReactElement }> = {
   hoy: { title: 'Hoy', Component: TodayPage },
-  proximo: { title: 'Próximo', Component: UpcomingPage },
+  // Antes «Próximo»: ahora es la vista Calendario de Tareas (se mantiene por los enlaces antiguos).
+  proximo: { title: 'Tareas', Component: TasksPage },
   tareas: { title: 'Tareas', Component: TasksPage },
   historial: { title: 'Historial', Component: HistoryPage },
   charca: { title: 'La charca', Component: PondPage },

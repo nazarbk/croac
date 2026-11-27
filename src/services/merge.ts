@@ -16,7 +16,7 @@
  * - Ajustes, nombre y complementos puestos: los del dispositivo que tiene cambios sin subir.
  */
 import { levelInfo } from '../domain/progression';
-import type { AppNotification, AppState, HistoryEntry, Task, TaskList } from '../domain/types';
+import type { AppNotification, AppState, HistoryEntry, StampKey, Task, TaskList } from '../domain/types';
 
 const MAX_NOTIFICATIONS = 60;
 /** Lo borrado se recuerda este tiempo; de sobra para que se sincronicen todos los dispositivos. */
@@ -45,6 +45,23 @@ export function revivedIds(next: AppState): string[] {
   const out: string[] = [];
   for (const x of [...next.tasks, ...next.lists, ...next.history]) if (x.id in t) out.push(x.id);
   return out;
+}
+
+/** Qué preferencias cambiaron entre `prev` y `next` (complementos puestos, nombre, ajustes). */
+export function changedStamps(prev: AppState, next: AppState): StampKey[] {
+  const out: StampKey[] = [];
+  if (prev.frog.equipped !== next.frog.equipped && JSON.stringify(prev.frog.equipped) !== JSON.stringify(next.frog.equipped)) out.push('equipped');
+  if (prev.frog.name !== next.frog.name) out.push('name');
+  if (prev.settings !== next.settings && JSON.stringify(prev.settings) !== JSON.stringify(next.settings)) out.push('settings');
+  return out;
+}
+
+/** Apunta la hora de los cambios de preferencias. */
+export function withStamps(state: AppState, keys: StampKey[], now: number): AppState {
+  if (!keys.length) return state;
+  const stamps = { ...(state.meta.stamps ?? {}) };
+  for (const k of keys) stamps[k] = now;
+  return { ...state, meta: { ...state.meta, stamps } };
 }
 
 /** Añade/quita marcas de borrado y olvida las muy antiguas. */
@@ -76,6 +93,14 @@ export function mergeStates(local: AppState, remote: AppState, opts: { localDirt
   const tomb: Tombstones = { ...(remote.meta.removed ?? {}) };
   for (const [id, at] of Object.entries(local.meta.removed ?? {})) tomb[id] = Math.max(tomb[id] ?? 0, at);
   const pref = opts.localDirty ? local : remote;
+  // Para cada preferencia, gana el dispositivo que la cambió más tarde (si no se sabe, el que tiene cambios).
+  const latest = (k: StampKey) => {
+    const l = local.meta.stamps?.[k] ?? 0;
+    const r = remote.meta.stamps?.[k] ?? 0;
+    return l > r ? local : r > l ? remote : pref;
+  };
+  const stamps: Partial<Record<StampKey, number>> = { ...(remote.meta.stamps ?? {}) };
+  for (const [k, v] of Object.entries(local.meta.stamps ?? {}) as [StampKey, number][]) stamps[k] = Math.max(stamps[k] ?? 0, v);
 
   /* ---------- Historial y saldo ---------- */
   const remoteIds = byId(remote.history);
@@ -143,7 +168,7 @@ export function mergeStates(local: AppState, remote: AppState, opts: { localDirt
 
   /* ---------- Rana ---------- */
   const owned = [...new Set([...remote.frog.owned, ...local.frog.owned])];
-  const equipped = Object.fromEntries(Object.entries(pref.frog.equipped).filter(([, id]) => id && owned.includes(id)));
+  const equipped = Object.fromEntries(Object.entries(latest('equipped').frog.equipped).filter(([, id]) => id && owned.includes(id)));
 
   const removed: Tombstones = {};
   for (const [id, at] of Object.entries(tomb)) if (now - at <= TOMBSTONE_TTL) removed[id] = at;
@@ -156,9 +181,10 @@ export function mergeStates(local: AppState, remote: AppState, opts: { localDirt
     lists,
     history,
     notifications,
-    settings: pref.settings,
+    settings: latest('settings').settings,
     frog: {
       ...pref.frog,
+      name: latest('name').frog.name,
       xp,
       coins,
       owned,
@@ -174,6 +200,7 @@ export function mergeStates(local: AppState, remote: AppState, opts: { localDirt
       plan: local.meta.plan === 'pro' || remote.meta.plan === 'pro' ? 'pro' : remote.meta.plan,
       patioCanvases: Math.max(local.meta.patioCanvases ?? 0, remote.meta.patioCanvases ?? 0) || undefined,
       removed: Object.keys(removed).length || remote.meta.removed ? removed : undefined,
+      stamps: Object.keys(stamps).length ? stamps : undefined,
     },
   };
 }

@@ -67,8 +67,7 @@ function Sidebar() {
       </button>
       <nav className="flex flex-col gap-1" aria-label="Principal">
         <NavLink to="hoy" icon="sun" label="Hoy" count={due.length + overdue.length} active={route.name === 'hoy'} />
-        <NavLink to="proximo" icon="calendar" label="Próximo" active={route.name === 'proximo'} />
-        <NavLink to="tareas" icon="list" label="Todas las tareas" active={route.name === 'tareas' && !currentList} />
+        <NavLink to="tareas" icon="list" label="Tareas" active={(route.name === 'tareas' || route.name === 'proximo') && !currentList} />
         <NavLink to="historial" icon="history" label="Historial" active={route.name === 'historial'} />
       </nav>
       <div className="flex items-center justify-between mt-7 mb-1.5 pl-3">
@@ -107,10 +106,10 @@ function Sidebar() {
 
 const MOBILE_TABS: { to: RouteName; icon: IconName; label: string }[] = [
   { to: 'hoy', icon: 'sun', label: 'Hoy' },
-  { to: 'proximo', icon: 'calendar', label: 'Próximo' },
   { to: 'tareas', icon: 'list', label: 'Tareas' },
   { to: 'charca', icon: 'waves', label: 'Charca' },
   { to: 'rana', icon: 'leaf', label: 'Rana' },
+  { to: 'tienda', icon: 'bag', label: 'Tienda' },
 ];
 
 function BottomNav() {
@@ -122,7 +121,7 @@ function BottomNav() {
     >
       <div className="grid grid-cols-5 h-16">
         {MOBILE_TABS.map((t) => {
-          const active = route.name === t.to;
+          const active = route.name === t.to || (t.to === 'tareas' && route.name === 'proximo');
           return (
             <a key={t.to} href={href(t.to)} aria-current={active ? 'page' : undefined}
               className={cn('flex flex-col items-center justify-center gap-1 text-[11px] font-semibold', active ? 'text-lily-strong' : 'text-muted')}>
@@ -203,7 +202,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                       </span>
                     )}
                     items={[
-                      { label: 'Tienda', icon: 'bag', onSelect: () => navigate('tienda') },
                       { label: 'El patio', icon: 'brush', onSelect: () => navigate('patio') },
                       { label: 'Amigos', icon: 'users', onSelect: () => navigate('amigos') },
                       { label: 'Historial', icon: 'history', onSelect: () => navigate('historial') },

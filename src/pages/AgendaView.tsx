@@ -11,9 +11,11 @@ import { ui } from '../store/uiStore';
 
 const DAYS = 14;
 
-export function UpcomingPage() {
+/** Vista «Calendario» de Tareas: las dos próximas semanas, día a día. */
+export function AgendaView({ listId }: { listId?: string | null }) {
   const today = useToday();
-  const tasks = useApp((s) => s.tasks);
+  const allTasks = useApp((s) => s.tasks);
+  const tasks = useMemo(() => (listId ? allTasks.filter((t) => t.listId === listId) : allTasks), [allTasks, listId]);
   const lists = useListsById();
   const streaks = useStreaks();
   const compare = useTaskCompare();
@@ -34,14 +36,23 @@ export function UpcomingPage() {
     }
     return [...map.entries()].map(([date, v]) => ({ date, real: v.real.sort(compare), ghost: v.ghost.sort(compare) }));
   }, [tasks, today, compare]);
+  // Las atrasadas van arriba: si no, desaparecerían del calendario.
+  const overdue = useMemo(() => tasks.filter((t) => t.status !== 'done' && t.dueDate && t.dueDate < today).sort(compare), [tasks, today, compare]);
 
   return (
     <div>
-      <header>
-        <h1 className="font-display text-[2rem] leading-none font-extrabold tracking-tight">Próximo</h1>
-        <p className="text-muted mt-1.5">Las próximas dos semanas. Las repeticiones futuras aparecen atenuadas.</p>
-      </header>
-      <div className="mt-4">
+      <p className="text-sm text-muted mt-4">Las próximas dos semanas. Las repeticiones futuras aparecen atenuadas.</p>
+      <div className="mt-1">
+        {overdue.length > 0 && (
+          <section className="mt-5">
+            <div className="px-3 py-2 border-b border-line">
+              <h2 className="text-[15px] font-display font-bold text-danger">Atrasadas <span className="text-muted font-normal ml-1">{overdue.length}</span></h2>
+            </div>
+            <div className="flex flex-col gap-2 pt-3">
+              <TaskGroup tasks={overdue} today={today} lists={lists} streaks={streaks} graceDays={grace} showDate={false} />
+            </div>
+          </section>
+        )}
         {days.map(({ date, real, ghost }) => (
           <section key={date} className="mt-5">
             <div className="sticky top-[4.75rem] xl:top-0 z-10 bg-bg/95 backdrop-blur flex items-center justify-between px-3 py-2 border-b border-line">
@@ -52,7 +63,7 @@ export function UpcomingPage() {
                   <span className="font-display font-bold">{capitalize(formatLong(date))}</span>
                 )}
               </h2>
-              <IconButton icon="plus" label="Añadir tarea este día" size={16} className="w-8 h-8" onClick={() => ui.openEditor(null, { date })} />
+              <IconButton icon="plus" label="Añadir tarea este día" size={16} className="w-8 h-8" onClick={() => ui.openEditor(null, { date, ...(listId ? { listId } : {}) })} />
             </div>
             {real.length === 0 && ghost.length === 0 ? (
               <p className="px-3 py-3 text-sm text-muted/80">Nada previsto</p>

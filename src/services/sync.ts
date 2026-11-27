@@ -19,7 +19,7 @@ import type { AppState } from '../domain/types';
 import { accountStore, statsFrom, withSession } from './account';
 import { backend } from './backend';
 import { saveLocalBackup } from './backups';
-import { mergeStates, removedIds, revivedIds, sameData, withTombstones } from './merge';
+import { changedStamps, mergeStates, removedIds, revivedIds, sameData, withStamps, withTombstones } from './merge';
 import { ApiError, type RemoteState } from './types';
 
 const META_KEY = 'croac:sync';
@@ -241,9 +241,11 @@ export function useCloudSync() {
       if (applyingRemote || marking) return;
       const gone = removedIds(before, next);
       const back = revivedIds(next);
-      if (gone.length || back.length) {
+      const stamped = changedStamps(before, next);
+      if (gone.length || back.length || stamped.length) {
         marking = true;
-        appStore.set(withTombstones(next, gone, back, Date.now()));
+        const now = Date.now();
+        appStore.set(withStamps(gone.length || back.length ? withTombstones(next, gone, back, now) : next, stamped, now));
         prev = appStore.get();
         marking = false;
       }
@@ -275,6 +277,11 @@ export function useCloudSync() {
 
     const onVisible = () => document.visibilityState === 'visible' && void pullNow();
     document.addEventListener('visibilitychange', onVisible);
+    // En el ordenador, volver a la ventana no siempre cambia la visibilidad; y al recuperar la conexión, también.
+    let lastFocusPull = 0;
+    const onFocus = () => { if (Date.now() - lastFocusPull > 10_000) { lastFocusPull = Date.now(); void pullNow(); } };
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('online', onFocus);
     const poll = setInterval(() => document.visibilityState === 'visible' && void pullNow(), POLL_EVERY);
     const onHide = () => { if (meta.dirty && loggedIn()) void pushNow(); };
     window.addEventListener('pagehide', onHide);
@@ -283,6 +290,8 @@ export function useCloudSync() {
       unsubState();
       unsubAccount();
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('online', onFocus);
       window.removeEventListener('pagehide', onHide);
       clearInterval(poll);
       clearTimeout(readyTimer);

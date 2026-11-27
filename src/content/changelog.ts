@@ -17,6 +17,19 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.5.0',
+    date: '2026-11-27',
+    title: 'Menos menús, más claro',
+    art: 'ui/celebrate.webp',
+    changes: [
+      { kind: 'mejora', text: '«Próximo» y «Todas las tareas» ahora son una sola sección, «Tareas», con dos vistas: Lista (por fechas, con filtros y búsqueda) y Calendario (las dos próximas semanas, día a día). «Hoy» sigue siendo lo que toca hoy.' },
+      { kind: 'mejora', text: 'En el móvil, la Tienda pasa a la barra de abajo.' },
+      { kind: 'arreglo', text: 'Los complementos que te pones se sincronizan bien entre dispositivos: gana siempre el último cambio, lo hagas en el móvil o en el ordenador.' },
+      { kind: 'mejora', text: 'Al volver a la ventana o recuperar la conexión, la app se sincroniza sola.' },
+      { kind: 'nuevo', text: 'Si tu rana todavía no lleva nada y ya tienes monedas, «Hoy» te avisa de que puedes estrenar complemento (y lucirlo en la charca).' },
+    ],
+  },
+  {
     version: '1.4.1',
     date: '2026-11-26',
     title: 'Tus datos, a salvo entre dispositivos',

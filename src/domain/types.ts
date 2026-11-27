@@ -89,7 +89,11 @@ export interface Meta {
   patioCanvases?: number;
   /** Ids borrados (tareas, listas, entradas deshechas) → cuándo; para que otro dispositivo no los resucite al sincronizar. */
   removed?: Record<string, number>;
+  /** Cuándo se cambió por última vez cada preferencia (para que gane el cambio más reciente entre dispositivos). */
+  stamps?: Partial<Record<StampKey, number>>;
 }
+
+export type StampKey = 'equipped' | 'name' | 'settings';
 
 export type HistoryType = 'complete' | 'penalty' | 'bonus' | 'purchase';
 

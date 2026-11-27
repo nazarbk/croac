@@ -3,7 +3,7 @@ import { createInitialState } from '../../domain/defaults';
 import { buyItem, completeTask, rollover, undoCompletion } from '../../domain/engine';
 import { buildTask } from '../../domain/tasks';
 import type { AppState, Ctx } from '../../domain/types';
-import { mergeStates, removedIds, revivedIds, sameData, withTombstones } from '../merge';
+import { changedStamps, mergeStates, removedIds, revivedIds, sameData, withStamps, withTombstones } from '../merge';
 
 const ctx = (today: string, h = 12): Ctx => ({ today, now: Date.parse(`${today}T${String(h).padStart(2, '0')}:00:00`) });
 
@@ -127,5 +127,22 @@ describe('fusión al sincronizar', () => {
     expect(merged.settings.theme).toBe('dark');
     expect(merged.frog.name).toBe('Poly');
     expect(mergeStates(local, base, { localDirty: false }).frog.name).toBe(base.frog.name);
+  });
+
+  it('los complementos puestos son los del último cambio, aunque el otro dispositivo tenga cambios', () => {
+    const base = { ...monday(), frog: { ...monday().frog, owned: [...monday().frog.owned, 'hat-party', 'eyes-round'] } };
+    const at = ctx('2026-11-27').now;
+    // En el móvil se pone el gorro a las 12:00.
+    const phonePrev = base;
+    const phoneNext = { ...base, frog: { ...base.frog, equipped: { ...base.frog.equipped, hat: 'hat-party' } } };
+    const phone = withStamps(phoneNext, changedStamps(phonePrev, phoneNext), at);
+    // El ordenador tenía cambios sin subir (completó una tarea) pero no tocó los complementos.
+    const pc = { ...base, meta: { ...base.meta, lastRolloverDate: '2026-11-27' } };
+    const merged = mergeStates(pc, phone, { localDirty: true });
+    expect(merged.frog.equipped.hat).toBe('hat-party');
+    // Y si después el ordenador se pone otra cosa, gana el ordenador.
+    const pcNext = { ...merged, frog: { ...merged.frog, equipped: { ...merged.frog.equipped, eyes: 'eyes-round' } } };
+    const pc2 = withStamps(pcNext, changedStamps(merged, pcNext), at + 60_000);
+    expect(mergeStates(phone, pc2, { localDirty: true }).frog.equipped.eyes).toBe('eyes-round');
   });
 });

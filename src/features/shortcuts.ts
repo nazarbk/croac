@@ -24,7 +24,7 @@ export function useShortcuts() {
           navigate('hoy');
           break;
         case 'p':
-          navigate('proximo');
+          navigate('tareas', { vista: 'calendario' });
           break;
       }
     };

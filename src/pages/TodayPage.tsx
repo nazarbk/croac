@@ -8,6 +8,7 @@ import { SortMenu } from '../components/tasks/SortMenu';
 import { Frog } from '../components/frog/Frog';
 import { InstallBanner } from '../features/install';
 import { SeasonBoostBanner } from '../features/SeasonBoost';
+import { ShopNudge } from '../features/ShopNudge';
 import { EmptyState } from '../components/ui/controls';
 import { Icon } from '../components/ui/Icon';
 import { actions } from '../store/actions';
@@ -113,6 +114,7 @@ export function TodayPage() {
       </div>
 
       <SeasonBoostBanner />
+      <ShopNudge />
       <InstallBanner />
 
       {penalized.length > 0 && !vacation && (
@@ -145,7 +147,7 @@ export function TodayPage() {
         >
           {completedToday.length
             ? `${info.frog.name} está encantada. Mañana más.`
-            : 'Pulsa + para añadir una tarea o revisa lo que tienes en Próximo.'}
+            : 'Pulsa + para añadir una tarea o mira los próximos días en Tareas → Calendario.'}
         </EmptyState>
       )}
 
