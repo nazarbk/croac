@@ -91,6 +91,8 @@ export interface Meta {
   removed?: Record<string, number>;
   /** Cuándo se cambió por última vez cada preferencia (para que gane el cambio más reciente entre dispositivos). */
   stamps?: Partial<Record<StampKey, number>>;
+  /** Regalo de bienvenida elegido (un complemento o 'coins'). */
+  welcome?: string;
 }
 
 export type StampKey = 'equipped' | 'name' | 'settings';

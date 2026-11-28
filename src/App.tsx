@@ -1,3 +1,4 @@
+import { WelcomeGift } from './features/WelcomeGift';
 import { lazy, Suspense, useEffect } from 'react';
 import { AppShell } from './components/layout/AppShell';
 import { TaskEditor } from './components/tasks/TaskEditor';
@@ -30,6 +31,7 @@ import { tickClock, useApp } from './store/appStore';
 import { startAdminWatch, useAdminStatus } from './services/admin';
 import { loadRemoteFit } from './services/appConfig';
 import { startPatio } from './services/patio';
+import { warmOfflineCache } from './services/offline';
 
 /**
  * Probador de complementos (#/admin/probador; también #/dev/wardrobe). Solo lo abre un
@@ -93,6 +95,10 @@ export default function App() {
     startAdminWatch();
     startPatio();
     void loadRemoteFit();
+    // Cuando el navegador esté libre, guardar las ilustraciones para usar la app sin conexión.
+    const t = setTimeout(warmOfflineCache, 8000);
+    navigator.serviceWorker?.addEventListener?.('controllerchange', warmOfflineCache);
+    return () => clearTimeout(t);
   }, []);
   const adminStatus = useAdminStatus();
 
@@ -133,6 +139,7 @@ export default function App() {
       <SyncConflictModal />
       <ScheduleAgain />
       <WhatsNew />
+      <WelcomeGift />
     </>
   );
 }

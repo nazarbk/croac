@@ -114,7 +114,9 @@ croac/
 - Rana con 5 etapas, 5 ánimos, tienda, armario; celebraciones al subir de nivel.
 - Estadísticas: racha, días perfectos, barras de 14 días, mapa de constancia, hábitos, por lista.
 - El patio del complemento: cada semana se compra un lienzo (150 monedas), se dibuja un gorro, cuello o gafas, se vota (3 votos) y el ganador entra gratis en la tienda con premio para su autor (`docs/PATIO.md`).
-- Navegación: «Hoy» (lo que toca hoy) y «Tareas» (todo, con vistas Lista y Calendario); listas en la barra lateral.
+- Navegación: «Hoy» (lo que toca hoy) y «Tareas» (todo, con vistas Lista y Calendario); listas en la barra lateral. Historial en forma de calendario.
+- Sin conexión: el service worker guarda la app y las ilustraciones del usuario (`services/offline.ts`); los datos viven en el dispositivo y se sincronizan al volver la conexión.
+- Regalo de bienvenida (`domain/welcome.ts`): un complemento sencillo o 50 monedas, una vez por cuenta.
 - Cuenta opcional: sincronización entre dispositivos, recuperación de contraseña, borrar cuenta, amigos por código/enlace (la invitación se envía sola), charca compartida ilustrada y ranking semanal.
 - PWA: instalable (Android, iOS, escritorio), funciona sin conexión, iconos y pantallas de arranque.
 - Ajustes: margen de penalización, vacaciones, inicio del día, tema, notificaciones, sonidos, orden, plan (Pro en demo), exportar/importar JSON, borrar todo.

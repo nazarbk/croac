@@ -20,7 +20,8 @@ export const openAuth = (mode: AuthMode = 'signup') => authStore.set({ open: tru
 async function syncByHand() {
   await pullNow();
   const { status } = syncStore.get();
-  if (status === 'error') ui.toast({ message: 'No se ha podido sincronizar. Comprueba la conexión.', tone: 'danger' });
+  if (status === 'offline') ui.toast({ message: 'Sin conexión. Tus cambios están guardados aquí y se subirán solos al volver.' });
+  else if (status === 'error') ui.toast({ message: 'No se ha podido sincronizar. Se reintentará solo.', tone: 'danger' });
   else if (status !== 'conflict') ui.toast({ message: 'Todo sincronizado' });
 }
 
@@ -293,6 +294,7 @@ export function AccountCard() {
 
   const statusText =
     sync.status === 'syncing' ? 'Sincronizando…'
+      : sync.status === 'offline' ? 'Sin conexión: tus cambios se guardan aquí y se subirán al volver'
       : sync.status === 'error' ? 'No se ha podido sincronizar. Se reintentará solo.'
         : sync.status === 'conflict' ? 'Elige qué datos conservar'
           : `Sincronizado ${timeAgo(sync.checkedAt ?? sync.lastSyncedAt)}`;
@@ -306,8 +308,8 @@ export function AccountCard() {
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-lg font-bold truncate">{profile ? `@${profile.username}` : 'Tu cuenta'}</h2>
           <p className="text-sm text-muted truncate">{session.email}</p>
-          <p className={cn('text-sm mt-2 flex items-center gap-1.5', sync.status === 'error' ? 'text-danger' : 'text-lily-strong')}>
-            <Icon name={sync.status === 'error' ? 'alert' : 'cloud'} size={15} />{statusText}
+          <p className={cn('text-sm mt-2 flex items-center gap-1.5', sync.status === 'error' ? 'text-danger' : sync.status === 'offline' ? 'text-warn' : 'text-lily-strong')}>
+            <Icon name={sync.status === 'error' ? 'alert' : sync.status === 'offline' ? 'cloudOff' : 'cloud'} size={15} />{statusText}
           </p>
           {profile && (
             <p className="text-sm mt-2">

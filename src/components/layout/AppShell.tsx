@@ -1,3 +1,4 @@
+import { OfflinePill } from './OfflinePill';
 import { useMemo, useState, type ReactNode } from 'react';
 import { href, navigate, useRoute, type RouteName } from '../../lib/router';
 import { cn } from '../../lib/cn';
@@ -53,28 +54,28 @@ function Sidebar() {
   const currentList = route.name === 'tareas' ? route.params.get('lista') : null;
 
   return (
-    <aside className="hidden lg:flex flex-col w-[17rem] shrink-0 sticky top-0 h-dvh py-6 pl-5 pr-3 border-r border-line/70 bg-surface/40 backdrop-blur-sm">
-      <a href={href('hoy')} className="flex items-center px-2 mb-6 rounded-xl" aria-label="Croac, ir a Hoy">
+    <aside className="hidden lg:flex flex-col w-[17rem] shrink-0 sticky top-0 h-dvh py-6 pl-5 pr-3 border-r border-line/70 bg-surface/40 backdrop-blur-sm overflow-y-auto overscroll-contain scrollbar-thin">
+      <a href={href('hoy')} className="shrink-0 flex items-center px-2 mb-6 rounded-xl" aria-label="Croac, ir a Hoy">
         <Logo />
       </a>
       <button
         type="button"
         onClick={() => ui.openEditor(null)}
-        className="mb-5 h-11 px-4 rounded-xl bg-lily bg-primary-grad text-on-lily font-semibold flex items-center gap-2 shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_1px_2px_rgb(0_0_0/0.15)] hover:brightness-105"
+        className="shrink-0 mb-5 h-11 px-4 rounded-xl bg-lily bg-primary-grad text-on-lily font-semibold flex items-center gap-2 shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_1px_2px_rgb(0_0_0/0.15)] hover:brightness-105"
       >
         <Icon name="plus" size={18} strokeWidth={2.5} />Nueva tarea
         <kbd className="ml-auto text-[11px] font-semibold px-1.5 h-5 inline-flex items-center rounded-md bg-on-lily/15">N</kbd>
       </button>
-      <nav className="flex flex-col gap-1" aria-label="Principal">
+      <nav className="shrink-0 flex flex-col gap-1" aria-label="Principal">
         <NavLink to="hoy" icon="sun" label="Hoy" count={due.length + overdue.length} active={route.name === 'hoy'} />
         <NavLink to="tareas" icon="list" label="Tareas" active={(route.name === 'tareas' || route.name === 'proximo') && !currentList} />
         <NavLink to="historial" icon="history" label="Historial" active={route.name === 'historial'} />
       </nav>
-      <div className="flex items-center justify-between mt-7 mb-1.5 pl-3">
+      <div className="shrink-0 flex items-center justify-between mt-7 mb-1.5 pl-3">
         <span className="text-[13px] font-semibold text-muted">Listas</span>
         <IconButton icon="plus" label="Nueva lista" size={16} className="w-8 h-8" onClick={() => setListModal(true)} />
       </div>
-      <nav className="flex flex-col gap-1 overflow-y-auto scrollbar-none -mr-3 pr-3 pb-2" aria-label="Listas">
+      <nav className="shrink-0 flex flex-col gap-1 pb-2" aria-label="Listas">
         {lists.map((l) => (
           <NavLink
             key={l.id} to="tareas" params={{ lista: l.id }} label={l.name} count={counts.get(l.id)}
@@ -83,7 +84,7 @@ function Sidebar() {
           />
         ))}
       </nav>
-      <div className="mt-auto pt-4 flex flex-col gap-1 border-t border-line">
+      <div className="shrink-0 mt-auto pt-4 flex flex-col gap-1 border-t border-line">
         <NavLink to="rana" icon="leaf" label={`Mi rana · ${info.frog.name}`} active={route.name === 'rana'} />
         <NavLink to="charca" icon="waves" label="La charca" active={route.name === 'charca'} />
         <NavLink to="patio" icon="brush" label="El patio" active={route.name === 'patio'} />
@@ -221,6 +222,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <FrogPanel bell={<Bell />} />
       <BottomNav />
+      <OfflinePill />
       <MobileQuickAdd />
       <NotificationsPanel open={notifOpen} onClose={() => ui.setNotificationsOpen(false)} />
     </div>

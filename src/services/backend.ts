@@ -252,7 +252,7 @@ export const backend: Backend = {
   async listStateVersions(s) {
     try {
       return await call<StateVersion[]>(
-        `/rest/v1/user_state_versions?user_id=eq.${s.userId}&select=id,saved_at,updated_at,xp:state->frog->xp,coins:state->frog->coins&order=saved_at.desc&limit=60`,
+        `/rest/v1/user_state_versions?user_id=eq.${s.userId}&select=id,saved_at,updated_at,reason,xp:state->frog->xp,coins:state->frog->coins&order=saved_at.desc&limit=20`,
         { token: s.accessToken },
       );
     } catch (e) {

@@ -108,9 +108,10 @@ Para probar en local, crea un archivo `.env` (no se sube a Git) copiando `.env.e
 - Cada dispositivo guarda sus datos y los sube a `user_state`. Si la nube cambió desde la última vez, **se combinan** las dos copias (nada se pisa): se juntan el historial, las tareas (gana la modificada más tarde), las compras y los días perfectos; lo borrado se recuerda para que no vuelva.
 - La subida es condicional: solo se escribe si la nube sigue en la versión que conocía el dispositivo; si no, primero se combina.
 - El cierre del día (penalizaciones) espera a traer lo de la nube, para no penalizar con datos viejos.
-- **Copias**: antes de cambiar los datos de un dispositivo se guarda una copia local (3 últimas) y el servidor guarda versiones anteriores en `user_state_versions` (todas las de la última media hora, una por hora durante 2 días y una por día durante 14 días). En **Ajustes → Tus datos → Recuperar datos** se combina cualquiera con lo actual. Importar un archivo también combina.
+- **Copias**: antes de cambiar los datos de un dispositivo se guarda una copia local (3 últimas) y el servidor guarda versiones anteriores en `user_state_versions` (solo cuando hace falta, para que escale: una al día que dura 7 días, otra antes de cualquier cambio que quite historial o complementos que dura 14, como mucho 10 por usuario y comprimidas; unos 0,5–1 MB por usuario activo). En **Ajustes → Tus datos → Recuperar datos** se combina cualquiera con lo actual. Importar un archivo también combina.
 
-Para activar las copias del servidor hay que volver a ejecutar `supabase/schema.sql` (v1.4.1).
+Para activar las copias del servidor (o aplicar la retención más ligera de la v1.6) hay que volver a ejecutar `supabase/schema.sql`.
+- **Sin conexión** la app funciona igual: los cambios se quedan en el dispositivo (estado «Sin conexión» en Ajustes y un aviso arriba) y se suben al volver la conexión, combinándose con lo que haya en la nube.
 
 ## Actualizar a la v1.3 (el patio)
 

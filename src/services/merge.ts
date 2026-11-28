@@ -198,6 +198,7 @@ export function mergeStates(local: AppState, remote: AppState, opts: { localDirt
       onboarded: local.meta.onboarded || remote.meta.onboarded,
       createdAt: Math.min(local.meta.createdAt, remote.meta.createdAt),
       plan: local.meta.plan === 'pro' || remote.meta.plan === 'pro' ? 'pro' : remote.meta.plan,
+      welcome: remote.meta.welcome ?? local.meta.welcome,
       patioCanvases: Math.max(local.meta.patioCanvases ?? 0, remote.meta.patioCanvases ?? 0) || undefined,
       removed: Object.keys(removed).length || remote.meta.removed ? removed : undefined,
       stamps: Object.keys(stamps).length ? stamps : undefined,

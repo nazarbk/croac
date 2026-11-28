@@ -4,7 +4,7 @@
  * - En este dispositivo: antes de cambiar sus datos por los de la nube (o de combinarlos) se
  *   guarda una copia local. Se conservan las 3 últimas.
  * - En la nube: el servidor guarda la versión anterior cada vez que se sobrescribe
- *   (tabla user_state_versions, como mucho una cada 30 minutos y las 40 últimas).
+ *   (tabla user_state_versions: una al día y otra antes de cualquier cambio que quite datos; 10 como mucho).
  *
  * Recuperar una copia nunca borra nada: se COMBINA con lo actual (vuelve lo que faltaba).
  */

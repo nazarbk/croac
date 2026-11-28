@@ -1,10 +1,46 @@
-/* Service worker mínimo: la app funciona sin conexión.
+/* Service worker: la app funciona sin conexión.
  * - Navegación: red primero, caché si no hay conexión.
- * - Recursos estáticos (JS, CSS, fuentes, iconos): caché primero y se actualiza en segundo plano. */
-const CACHE = 'croac-v4';
+ * - Recursos estáticos (JS, CSS, fuentes, ilustraciones): caché primero y se actualiza en segundo plano.
+ * - La app le pide guardar por adelantado las ilustraciones que usa (mensaje «warm»), para que
+ *   la rana se vea entera aunque se abra sin conexión una pantalla que aún no se había visitado.
+ * - La caché se limita a MAX_ENTRIES (se van quitando las más antiguas: JS de versiones viejas…).
+ * Los datos no pasan por aquí: se guardan en el dispositivo y se sincronizan al volver la conexión. */
+const CACHE = 'croac-v5';
+const MAX_ENTRIES = 350;
+
+let trimTimer = null;
+function trimSoon() {
+  clearTimeout(trimTimer);
+  trimTimer = setTimeout(async () => {
+    const cache = await caches.open(CACHE);
+    const keys = await cache.keys();
+    const keep = new Set(['/', '/index.html'].map((p) => new URL(p, self.registration.scope).href));
+    const extra = keys.length - MAX_ENTRIES;
+    for (const req of keys.slice(0, Math.max(0, extra))) if (!keep.has(req.url)) await cache.delete(req);
+  }, 3000);
+}
+
+self.addEventListener('message', (event) => {
+  const data = event.data || {};
+  if (data.type !== 'warm' || !Array.isArray(data.urls)) return;
+  event.waitUntil(
+    caches.open(CACHE).then(async (cache) => {
+      for (const url of data.urls.slice(0, 80)) {
+        if (await cache.match(url)) continue;
+        try {
+          const res = await fetch(url);
+          if (res.ok) await cache.put(url, res);
+        } catch {
+          /* sin conexión: ya se intentará otro día */
+        }
+      }
+      trimSoon();
+    }),
+  );
+});
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './favicon-96.png', './icons/icon-192.png', './icons/apple-touch-icon.png', './art/ui/coin.webp?v=1', './art/ui/xp.webp?v=1'])));
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './favicon-96.png', './icons/icon-192.png', './icons/apple-touch-icon.png', './art/ui/coin.webp?v=3', './art/ui/xp.webp?v=3'])));
   self.skipWaiting();
 });
 
@@ -41,7 +77,7 @@ self.addEventListener('fetch', (event) => {
         .then((res) => {
           if (res.ok || res.type === 'opaque') {
             const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(request, copy));
+            caches.open(CACHE).then((c) => c.put(request, copy)).then(trimSoon);
           }
           return res;
         })

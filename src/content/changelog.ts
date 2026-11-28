@@ -17,6 +17,19 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.6.0',
+    date: '2026-11-28',
+    title: 'Sin conexión, regalo y calendario',
+    art: 'ui/celebrate.webp',
+    changes: [
+      { kind: 'nuevo', text: 'Úsala sin conexión: tus tareas, tu rana y la tienda siguen funcionando. Lo que hagas se guarda en el dispositivo y se sincroniza solo al volver la conexión (verás un aviso arriba mientras tanto).' },
+      { kind: 'nuevo', text: 'Regalo de bienvenida: elige un complemento para tu rana o 50 monedas. Solo una vez por cuenta.' },
+      { kind: 'mejora', text: 'El historial es ahora un calendario: toca un día para ver lo que hiciste (con lo ganado, los premios y las penalizaciones). La búsqueda sigue mirando en todos los días.' },
+      { kind: 'arreglo', text: 'En pantallas bajas o con zoom, la barra lateral ya no aplasta el botón «Nueva tarea» ni corta las listas: se desplaza entera.' },
+      { kind: 'mejora', text: 'Las copias de seguridad en la nube ocupan mucho menos: una al día durante una semana y otra antes de cualquier cambio que quite datos.' },
+    ],
+  },
+  {
     version: '1.5.0',
     date: '2026-11-27',
     title: 'Menos menús, más claro',

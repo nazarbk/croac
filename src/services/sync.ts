@@ -38,7 +38,11 @@ interface SyncMeta {
   userId: string | null;
 }
 
-export type SyncStatus = 'off' | 'idle' | 'syncing' | 'error' | 'conflict';
+export type SyncStatus = 'off' | 'idle' | 'syncing' | 'offline' | 'error' | 'conflict';
+
+/** Sin conexión no es un error: los cambios se guardan aquí y se suben al volver. */
+const failStatus = (e: unknown): SyncStatus =>
+  (e instanceof ApiError && e.code === 'network') || (typeof navigator !== 'undefined' && navigator.onLine === false) ? 'offline' : 'error';
 
 interface SyncState {
   status: SyncStatus;
@@ -141,8 +145,8 @@ async function pushInner(): Promise<void> {
       }
     }
     setStatus('error');
-  } catch {
-    setStatus('error');
+  } catch (e) {
+    setStatus(failStatus(e));
   }
 }
 
@@ -176,9 +180,9 @@ export function pullNow() {
       } else if (meta.dirty) {
         await pushInner();
       }
-      if (syncStore.get().status !== 'error') markChecked();
-    } catch {
-      setStatus('error');
+      if (!['error', 'offline'].includes(syncStore.get().status)) markChecked();
+    } catch (e) {
+      setStatus(failStatus(e));
     } finally {
       if (!syncStore.get().conflict) markReady();
     }

@@ -48,6 +48,8 @@ export interface StateVersion {
   updated_at: string;
   xp: number | null;
   coins: number | null;
+  /** 'daily': copia del día; 'loss': antes de un cambio que quitaba historial o complementos. */
+  reason?: string;
 }
 
 export interface RemoteState {

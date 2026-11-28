@@ -368,11 +368,15 @@ drop policy if exists "patio: borrar de mi carpeta" on storage.objects;
 create policy "patio: borrar de mi carpeta" on storage.objects for delete to authenticated
   using (bucket_id = 'patio' and (storage.foldername(name))[1] = auth.uid()::text);
 
--- ---------- Copias automáticas del estado (v1.4.1) ----------
--- Cada vez que se sobrescribe user_state, el servidor guarda la versión anterior. Se conservan:
--- todas las de la última media hora, una por hora durante 2 días y una por día durante 14 días
--- (unas 90 por usuario activo como mucho). Desde Ajustes → Tus datos → Recuperar datos se puede
--- combinar cualquiera con lo actual para recuperar lo que falte.
+-- ---------- Copias automáticas del estado (v1.4.1, ajustadas en v1.6) ----------
+-- El servidor guarda la versión anterior de user_state, pero solo cuando hace falta, para que
+-- ocupe poco aunque haya muchos usuarios:
+--   · una copia al día (la del primer cambio del día), que se guarda 7 días;
+--   · una copia extra si un cambio hace desaparecer historial o complementos (lo que pasó el
+--     26/11), que se guarda 14 días.
+--   · como mucho 10 copias por usuario; el JSON se guarda comprimido (lz4).
+-- Unos 10 × tamaño del estado por usuario activo (≈ 0,5–1 MB). Los inactivos se van vaciando solos.
+-- Desde Ajustes → Tus datos → Recuperar datos se combina cualquiera con lo actual.
 create table if not exists public.user_state_versions (
   id         bigint generated always as identity primary key,
   user_id    uuid not null references auth.users (id) on delete cascade,
@@ -380,27 +384,42 @@ create table if not exists public.user_state_versions (
   updated_at timestamptz not null,
   saved_at   timestamptz not null default now()
 );
+alter table public.user_state_versions add column if not exists reason text not null default 'daily';
+alter table public.user_state_versions alter column state set compression lz4;
 create index if not exists user_state_versions_user on public.user_state_versions (user_id, saved_at desc);
 alter table public.user_state_versions enable row level security;
 drop policy if exists "mis copias" on public.user_state_versions;
 create policy "mis copias" on public.user_state_versions for select to authenticated using (user_id = auth.uid());
 grant select on public.user_state_versions to authenticated;
 
+create or replace function public.user_state_versions_prune(uid uuid) returns void
+language sql security definer set search_path = public as $$
+  delete from public.user_state_versions v
+  where v.user_id = uid and (
+    (v.reason = 'daily' and v.saved_at < now() - interval '7 days')
+    or v.saved_at < now() - interval '14 days'
+    or v.id not in (select id from public.user_state_versions where user_id = uid order by saved_at desc limit 10)
+  );
+$$;
+revoke all on function public.user_state_versions_prune(uuid) from public, anon, authenticated;
+
 create or replace function public.user_state_keep_version() returns trigger
 language plpgsql security definer set search_path = public as $$
+declare
+  loss boolean;
+  daily boolean;
 begin
-  if old.state is distinct from new.state then
-    insert into public.user_state_versions (user_id, state, updated_at) values (old.user_id, old.state, old.updated_at);
-    delete from public.user_state_versions v
-    where v.user_id = old.user_id and (
-      v.saved_at < now() - interval '14 days'
-      or (v.saved_at < now() - interval '2 days' and exists (
-        select 1 from public.user_state_versions w where w.user_id = v.user_id
-          and date_trunc('day', w.saved_at) = date_trunc('day', v.saved_at) and w.saved_at > v.saved_at))
-      or (v.saved_at < now() - interval '30 minutes' and exists (
-        select 1 from public.user_state_versions w where w.user_id = v.user_id
-          and date_trunc('hour', w.saved_at) = date_trunc('hour', v.saved_at) and w.saved_at > v.saved_at))
-    );
+  if old.state is not distinct from new.state then return new; end if;
+  loss := coalesce(jsonb_array_length(new.state -> 'history'), 0) < coalesce(jsonb_array_length(old.state -> 'history'), 0)
+       or coalesce(jsonb_array_length(new.state -> 'frog' -> 'owned'), 0) < coalesce(jsonb_array_length(old.state -> 'frog' -> 'owned'), 0);
+  daily := not exists (
+    select 1 from public.user_state_versions v
+    where v.user_id = old.user_id and v.saved_at >= date_trunc('day', now() at time zone 'Europe/Madrid') at time zone 'Europe/Madrid'
+  );
+  if loss or daily then
+    insert into public.user_state_versions (user_id, state, updated_at, reason)
+    values (old.user_id, old.state, old.updated_at, case when loss then 'loss' else 'daily' end);
+    perform public.user_state_versions_prune(old.user_id);
   end if;
   return new;
 end $$;
@@ -408,3 +427,6 @@ revoke all on function public.user_state_keep_version() from public, anon, authe
 drop trigger if exists user_state_keep_version on public.user_state;
 create trigger user_state_keep_version before update on public.user_state
   for each row execute function public.user_state_keep_version();
+
+-- Al actualizar desde la v1.4.1 (que guardaba muchas más), aplica ya la nueva retención.
+select public.user_state_versions_prune(u.user_id) from (select distinct user_id from public.user_state_versions) u;

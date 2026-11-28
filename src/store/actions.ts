@@ -1,3 +1,4 @@
+import { claimWelcome, type WelcomeChoice } from '../domain/welcome';
 import { createInitialState, LIST_COLORS, STARTER_TASKS } from '../domain/defaults';
 import { maxDate, type DateStr } from '../domain/dates';
 import * as patio from '../domain/patio';
@@ -248,6 +249,13 @@ export const actions = {
     }
     if (claimed.length) appStore.set(state);
     return claimed;
+  },
+
+  /** Regalo de bienvenida (una sola vez). */
+  claimWelcome(choice: WelcomeChoice) {
+    const before = appStore.get();
+    patch((s) => claimWelcome(s, choice, getCtx()));
+    return appStore.get() !== before;
   },
 
   /** Solo administración: añade un complemento al armario sin pagarlo (p. ej. para devolver uno perdido). */

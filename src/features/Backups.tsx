@@ -55,7 +55,7 @@ export function BackupsModal({ open, onClose }: { open: boolean; onClose: () => 
     })),
     ...(cloud ?? []).map((v) => ({
       key: `c${v.id}`, at: Date.parse(v.saved_at), source: 'cloud' as const,
-      detail: v.xp != null ? `Nivel ${levelInfo(Number(v.xp)).level} · ${v.coins ?? 0} monedas` : 'Copia en la nube',
+      detail: `${v.reason === 'loss' ? 'Antes de un cambio que quitaba datos' : 'Copia del día'}${v.xp != null ? ` · nivel ${levelInfo(Number(v.xp)).level} · ${v.coins ?? 0} monedas` : ''}`,
       load: () => cloudBackups.get(v.id),
     })),
   ].sort((a, b) => b.at - a.at);
@@ -84,7 +84,7 @@ export function BackupsModal({ open, onClose }: { open: boolean; onClose: () => 
         {cloud === null && <li className="text-sm text-muted p-3">Buscando copias en la nube…</li>}
         {cloud !== null && options.length === 0 && (
           <li className="text-sm text-muted p-3 rounded-xl bg-surface-2">
-            Todavía no hay copias. Se guardan solas a partir de ahora{cloudEnabled ? ' (en la nube, cada vez que cambian tus datos)' : ''}.
+            Todavía no hay copias. Se guardan solas a partir de ahora{cloudEnabled ? ' (en la nube, una al día durante una semana)' : ''}.
           </li>
         )}
         {options.map((o) => (
