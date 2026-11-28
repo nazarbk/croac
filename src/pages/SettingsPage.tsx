@@ -225,7 +225,7 @@ export function SettingsPage() {
       <div className="hidden lg:block">
       <Card title="Atajos de teclado">
         <div className="py-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-          {[['N', 'Nueva tarea'], ['/', 'Buscar tareas'], ['H', 'Ir a Hoy'], ['P', 'Ver el calendario'], ['Esc', 'Cerrar ventanas']].map(([k, d]) => (
+          {[['N', 'Nueva tarea'], ['/', 'Buscar tareas'], ['H', 'Ir a Hoy'], ['P', 'Ir a Tareas'], ['Esc', 'Cerrar ventanas']].map(([k, d]) => (
             <div key={k} className="contents">
               <kbd className="font-sans font-semibold text-xs px-2 h-6 min-w-6 inline-flex items-center justify-center rounded-md border border-line bg-surface-2">{k}</kbd>
               <span className="text-muted self-center">{d}</span>

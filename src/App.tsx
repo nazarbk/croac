@@ -43,7 +43,7 @@ const WARDROBE_PATHS = ['admin/probador', 'dev/wardrobe'];
 
 const PAGES: Record<RouteName, { title: string; Component: () => React.ReactElement }> = {
   hoy: { title: 'Hoy', Component: TodayPage },
-  // Antes «Próximo»: ahora es la vista Calendario de Tareas (se mantiene por los enlaces antiguos).
+  // Antes «Próximo»: ahora todo está en Tareas (se mantiene por los enlaces antiguos).
   proximo: { title: 'Tareas', Component: TasksPage },
   tareas: { title: 'Tareas', Component: TasksPage },
   historial: { title: 'Historial', Component: HistoryPage },

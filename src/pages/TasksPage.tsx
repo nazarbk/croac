@@ -13,10 +13,8 @@ import { href, navigate, useRoute } from '../lib/router';
 import { useApp, useToday } from '../store/appStore';
 import { useListsById, useStreaks, useTaskCompare } from '../store/selectors';
 import { Section, TaskGroup } from './TodayPage';
-import { AgendaView } from './AgendaView';
 
 type Filter = 'pendientes' | 'en-proceso' | 'completadas';
-type View = 'lista' | 'calendario';
 
 const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
@@ -24,8 +22,6 @@ export function TasksPage() {
   const route = useRoute();
   const listId = route.params.get('lista');
   const filter = (route.params.get('estado') as Filter) || 'pendientes';
-  // «Próximo» (enlaces antiguos) abre directamente el calendario.
-  const view: View = route.name === 'proximo' || route.params.get('vista') === 'calendario' ? 'calendario' : 'lista';
   const today = useToday();
   const tasks = useApp((s) => s.tasks);
   const lists = useApp((s) => s.lists);
@@ -39,17 +35,15 @@ export function TasksPage() {
   const searchRef = useRef<HTMLInputElement>(null);
   const compare = useTaskCompare();
 
-  const params = (p: { lista?: string | null; estado?: Filter; vista?: View }) => {
+  const params = (p: { lista?: string | null; estado?: Filter }) => {
     const out: Record<string, string> = {};
     const l = p.lista === undefined ? listId : p.lista;
     if (l) out.lista = l;
-    const v = p.vista ?? view;
-    if (v === 'calendario') out.vista = v;
-    else if (p.estado ?? filter) { const e = p.estado ?? filter; if (e !== 'pendientes') out.estado = e; }
+    const e = p.estado ?? filter;
+    if (e !== 'pendientes') out.estado = e;
     return out;
   };
   const setFilter = (f: Filter) => navigate('tareas', params({ estado: f }));
-  const setView = (v: View) => navigate('tareas', params({ vista: v, estado: 'pendientes' }));
 
   const visible = useMemo(() => {
     const q = fold(query.trim());
@@ -94,24 +88,13 @@ export function TasksPage() {
           <h1 className="font-display text-[2rem] leading-none font-extrabold tracking-tight truncate">
             {list ? <><span className="mr-2">{list.emoji}</span>{list.name}</> : 'Tareas'}
           </h1>
-          <p className="text-muted mt-1.5">{list ? 'Tareas de esta lista' : 'Todo lo que tienes apuntado. Míralo por fechas o en el calendario.'}</p>
+          <p className="text-muted mt-1.5">{list ? 'Tareas de esta lista' : 'Todo lo que tienes apuntado: atrasado, hoy, los próximos días y sin fecha.'}</p>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <SortMenu />
           {list && <Button size="sm" icon="edit" onClick={() => setEditList(true)}><span className="hidden sm:inline">Editar lista</span><span className="sm:hidden">Editar</span></Button>}
         </div>
       </header>
-
-      <div className="mt-4">
-        <Segmented<View>
-          value={view}
-          onChange={setView}
-          options={[
-            { value: 'lista', label: 'Lista' },
-            { value: 'calendario', label: 'Calendario' },
-          ]}
-        />
-      </div>
 
       {/* Selector de listas en móvil (en escritorio está en la barra lateral) */}
       <div className="lg:hidden -mx-4 px-4 mt-4 flex gap-2 overflow-x-auto scrollbar-none">
@@ -127,9 +110,6 @@ export function TasksPage() {
         </button>
       </div>
 
-      {view === 'calendario' ? (
-        <AgendaView listId={listId} />
-      ) : (<>
       <div className="mt-5 hidden lg:block">
         <QuickAdd listId={listId ?? undefined} defaultDate={null} placeholder={list ? `Añadir a ${list.name}` : undefined} />
       </div>
@@ -169,7 +149,6 @@ export function TasksPage() {
           </Section>
         ))
       )}
-      </>)}
       <ListModal open={editList} onClose={() => setEditList(false)} list={list} />
       <ListModal open={newList} onClose={() => setNewList(false)} />
     </div>

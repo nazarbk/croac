@@ -1,7 +1,7 @@
 {
   "name": "croac",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Gestor de tareas gamificado: completa tareas y haz crecer a tu rana.",
   "type": "module",
   "scripts": {

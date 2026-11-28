@@ -17,6 +17,15 @@ export interface Release {
 
 export const CHANGELOG: Release[] = [
   {
+    version: '1.6.1',
+    date: '2026-11-28',
+    title: 'Tareas, más sencilla',
+    art: 'ui/celebrate.webp',
+    changes: [
+      { kind: 'mejora', text: 'Quitamos la vista Calendario de Tareas: repetía lo mismo que la lista. En Tareas lo tienes todo por fechas (atrasado, hoy, los próximos 7 días, más adelante y sin fecha), y para ver un día concreto ya está el calendario del Historial.' },
+    ],
+  },
+  {
     version: '1.6.0',
     date: '2026-11-28',
     title: 'Sin conexión, regalo y calendario',

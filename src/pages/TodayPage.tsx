@@ -147,7 +147,7 @@ export function TodayPage() {
         >
           {completedToday.length
             ? `${info.frog.name} está encantada. Mañana más.`
-            : 'Pulsa + para añadir una tarea o mira los próximos días en Tareas → Calendario.'}
+            : 'Pulsa + para añadir una tarea o mira lo que tienes para los próximos días en Tareas.'}
         </EmptyState>
       )}
 
